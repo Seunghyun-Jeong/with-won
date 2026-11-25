@@ -84,6 +84,19 @@ public class AuthSession {
         return revokedAt;
     }
 
+    public boolean isActiveAt(LocalDateTime now) {
+        return revokedAt == null && expiresAt.isAfter(now);
+    }
+
+    public boolean matches(Long userId, String role) {
+        return ("CUSTOMER".equals(role) && customer != null && customer.getId().equals(userId))
+                || ("EMPLOYEE".equals(role) && employee != null && employee.getId().equals(userId));
+    }
+
+    public void touch(LocalDateTime now) {
+        lastActivityAt = now;
+    }
+
     public void revoke(LocalDateTime revokedAt) {
         this.revokedAt = revokedAt;
     }

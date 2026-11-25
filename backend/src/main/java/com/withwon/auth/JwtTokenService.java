@@ -9,6 +9,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class JwtTokenService {
@@ -52,6 +54,38 @@ public class JwtTokenService {
         return expirationSeconds;
     }
 
+    public JwtClaims verify(String token) {
+        if (token == null || token.isBlank()) {
+            throw new InvalidTokenException();
+        }
+
+        String[] parts = token.split("\\.", -1);
+        if (parts.length != 3) {
+            throw new InvalidTokenException();
+        }
+
+        String unsignedToken = parts[0] + "." + parts[1];
+        byte[] actualSignature = decode(parts[2]);
+        byte[] expectedSignature = decode(sign(unsignedToken));
+        if (!java.security.MessageDigest.isEqual(actualSignature, expectedSignature)) {
+            throw new InvalidTokenException();
+        }
+
+        String payload = new String(decode(parts[1]), StandardCharsets.UTF_8);
+        Map<String, String> claims = parseClaims(payload);
+        try {
+            long userId = Long.parseLong(claims.get("sub"));
+            String role = claims.get("role");
+            long expiresAt = Long.parseLong(claims.get("exp"));
+            if (role == null || role.isBlank() || Instant.now(clock).getEpochSecond() >= expiresAt) {
+                throw new InvalidTokenException();
+            }
+            return new JwtClaims(userId, role, Instant.ofEpochSecond(expiresAt));
+        } catch (NumberFormatException | NullPointerException exception) {
+            throw new InvalidTokenException();
+        }
+    }
+
     private String encode(String value) {
         return Base64.getUrlEncoder().withoutPadding()
                 .encodeToString(value.getBytes(StandardCharsets.UTF_8));
@@ -66,5 +100,34 @@ public class JwtTokenService {
         } catch (Exception exception) {
             throw new IllegalStateException("JWT signing failed.", exception);
         }
+    }
+
+    private byte[] decode(String value) {
+        try {
+            return Base64.getUrlDecoder().decode(value);
+        } catch (IllegalArgumentException exception) {
+            throw new InvalidTokenException();
+        }
+    }
+
+    private Map<String, String> parseClaims(String payload) {
+        Map<String, String> claims = new HashMap<>();
+        String body = payload.trim();
+        if (!body.startsWith("{") || !body.endsWith("}")) {
+            throw new InvalidTokenException();
+        }
+        for (String entry : body.substring(1, body.length() - 1).split(",")) {
+            String[] pair = entry.split(":", 2);
+            if (pair.length != 2) {
+                throw new InvalidTokenException();
+            }
+            String key = pair[0].trim().replace("\"", "");
+            String value = pair[1].trim().replace("\"", "");
+            claims.put(key, value);
+        }
+        return claims;
+    }
+
+    public record JwtClaims(Long userId, String role, Instant expiresAt) {
     }
 }
