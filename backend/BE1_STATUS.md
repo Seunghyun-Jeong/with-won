@@ -20,6 +20,7 @@ BE-2의 직원 업무 처리, AI 분석, 검토, 환급·보상 의사결정 API
 - `feature/be-auth-session-check`: 현재 작업 중인 세션 확인 구현
 - `feature/be-auth-logout`: 로그아웃 구현
 - `feature/be-customer-incident-domain`: 고객 사건 도메인 매핑
+- `feature/be-customer-evidence-domain`: 고객 증빙 도메인 매핑
 
 기능별로 브랜치를 분리하고, 테스트가 끝난 뒤 기능 단위로 커밋한다. 현재 세션 확인 브랜치의 변경사항은 아직 커밋하지 않았다.
 
@@ -74,6 +75,16 @@ BE-2의 직원 업무 처리, AI 분석, 검토, 환급·보상 의사결정 API
 - 고객별 사건 단건 조회 Repository 추가
 - 고객 ID를 조건으로 강제하는 사건 조회 서비스 추가
 - 상태값은 API 계약 확정 전까지 문자열로 유지
+
+### 고객 증빙 도메인 기반
+
+현재 `feature/be-customer-evidence-domain`에서 다음을 준비했다.
+
+- `evidence_files`와 `evidence_versions` 엔티티 매핑
+- 파일과 버전의 관계 매핑
+- 고객 ID를 포함한 증빙 파일·버전 Repository 조회
+- 추출·마스킹 JSON 컬럼은 DB 구조 보존을 위해 문자열 JSON으로 매핑
+- AI 재시도·JSON Schema 검증 로직은 BE-2 범위로 구현하지 않음
 
 ## 검증 현황
 
