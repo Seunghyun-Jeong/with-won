@@ -1,0 +1,87 @@
+{
+    "version": "V2",
+    "requestId": "string",
+    "timestamp": 1576569034247,
+    "images": [{
+        "uid": "9fd73a6aacad4025b3099a36ee55aacd",
+        "name": "medium",
+        "inferResult": "SUCCESS",
+        "message": "SUCCESS",
+        "validationResult": {
+                "result": "NO_REQUESTED"
+            },
+            "convertedImageInfo": {
+                "width": 1224,
+                "height": 1584,
+                "pageIndex": 0,
+                "longImage": false
+            },
+        "fields": [{
+                "valueType": "ALL",
+                "inferText": "How beautiful",
+                "inferConfidence": 0.99992156,
+                "type": "NORMAL",
+                "lineBreak": true,
+                "boundingPoly": {
+                    "vertices": [{
+                        "x": 2713.7295,
+                        "y": 1277.0492
+                    }, {
+                        "x": 2713.7295,
+                        "y": 977.7408
+                    }, {
+                        "x": 2841.4343,
+                        "y": 977.7408
+                    }, {
+                        "x": 2841.4343,
+                        "y": 1277.0492
+                    }]
+                }
+            },
+            {
+                "valueType": "ALL",
+                "inferText": "this",
+                "inferConfidence": 0.99958915,
+                "type": "NORMAL",
+                "lineBreak": false,
+                "boundingPoly": {
+                    "vertices": [{
+                        "x": 2314.6516,
+                        "y": 1468.6066
+                    }, {
+                        "x": 2314.6516,
+                        "y": 1328.9293
+                    }, {
+                        "x": 2426.3936,
+                        "y": 1328.9293
+                    }, {
+                        "x": 2426.3936,
+                        "y": 1468.6066
+                    }]
+                }
+            },
+            {
+                "valueType": "ALL",
+                "inferText": "world is",
+                "inferConfidence": 0.9998707,
+                "type": "NORMAL",
+                "lineBreak": false,
+                "boundingPoly": {
+                    "vertices": [{
+                        "x": 2314.6516,
+                        "y": 1604.2931
+                    }, {
+                        "x": 2314.6516,
+                        "y": 1460.625
+                    }, {
+                        "x": 2430.3843,
+                        "y": 1460.625
+                    }, {
+                        "x": 2430.3843,
+                        "y": 1604.2931
+                    }]
+                }
+            }
+        ]
+    }]
+}
