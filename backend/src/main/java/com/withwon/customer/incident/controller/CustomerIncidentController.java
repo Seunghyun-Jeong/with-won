@@ -2,12 +2,14 @@ package com.withwon.customer.incident.controller;
 
 import com.withwon.auth.AuthSessionService;
 import com.withwon.domain.incident.CustomerIncidentService;
+import com.withwon.domain.evidence.EvidenceQueryService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,9 +22,12 @@ public class CustomerIncidentController {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final CustomerIncidentService customerIncidentService;
+    private final EvidenceQueryService evidenceQueryService;
 
-    public CustomerIncidentController(CustomerIncidentService customerIncidentService) {
+    public CustomerIncidentController(CustomerIncidentService customerIncidentService,
+                                      EvidenceQueryService evidenceQueryService) {
         this.customerIncidentService = customerIncidentService;
+        this.evidenceQueryService = evidenceQueryService;
     }
 
     @GetMapping
@@ -44,5 +49,22 @@ public class CustomerIncidentController {
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         var incidents = customerIncidentService.findCustomerIncidents(principal.userId(), status, pageable);
         return ResponseEntity.ok(CustomerIncidentListResponse.from(incidents));
+    }
+
+    @GetMapping("/{incidentId}")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<CustomerIncidentDetailResponse> detail(
+            Authentication authentication,
+            @PathVariable Long incidentId) {
+        AuthSessionService.SessionPrincipal principal =
+                (AuthSessionService.SessionPrincipal) authentication.getPrincipal();
+        var incident = customerIncidentService.findCustomerIncident(principal.userId(), incidentId)
+                .orElseThrow(IncidentNotFoundException::new);
+        var evidenceFiles = evidenceQueryService
+                .findIncidentEvidenceFiles(principal.userId(), incidentId)
+                .stream()
+                .map(CustomerIncidentEvidenceResponse::from)
+                .toList();
+        return ResponseEntity.ok(CustomerIncidentDetailResponse.from(incident, evidenceFiles));
     }
 }

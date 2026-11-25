@@ -58,6 +58,14 @@ public class Customer {
         return passwordHash;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
     public boolean isActive() {
         return active;
     }
