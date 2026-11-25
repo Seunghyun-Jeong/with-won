@@ -13,6 +13,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class AuthSessionServiceTest {
@@ -57,6 +58,24 @@ class AuthSessionServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThrows(InvalidTokenException.class, () -> authSessionService.authenticate(token));
+    }
+
+    @Test
+    void revokesActiveSessionOnLogout() {
+        Customer customer = mock(Customer.class);
+        String token = jwtTokenService.issue(7L, "CUSTOMER");
+        AuthSession session = AuthSession.forCustomer(
+                customer,
+                sha256(token),
+                LocalDateTime.ofInstant(NOW, ZoneOffset.UTC),
+                LocalDateTime.ofInstant(NOW.plusSeconds(3600), ZoneOffset.UTC));
+        when(authSessionRepository.findByTokenHashAndRevokedAtIsNull(sha256(token)))
+                .thenReturn(Optional.of(session));
+
+        authSessionService.logout(token);
+
+        verify(authSessionRepository).findByTokenHashAndRevokedAtIsNull(sha256(token));
+        org.junit.jupiter.api.Assertions.assertNotNull(session.getRevokedAt());
     }
 
     private String sha256(String value) {

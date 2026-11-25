@@ -18,6 +18,7 @@ BE-2의 직원 업무 처리, AI 분석, 검토, 환급·보상 의사결정 API
 - `feature/be-auth-customer-login`: 고객 로그인 구현
 - `feature/be-auth-employee-login`: 직원 로그인 구현
 - `feature/be-auth-session-check`: 현재 작업 중인 세션 확인 구현
+- `feature/be-auth-logout`: 로그아웃 구현
 
 기능별로 브랜치를 분리하고, 테스트가 끝난 뒤 기능 단위로 커밋한다. 현재 세션 확인 브랜치의 변경사항은 아직 커밋하지 않았다.
 
@@ -43,7 +44,7 @@ BE-2의 직원 업무 처리, AI 분석, 검토, 환급·보상 의사결정 API
 
 ## 현재 작업: AUTH-03 세션 확인
 
-현재 `feature/be-auth-session-check`에서 다음을 구현 중이다.
+`feature/be-auth-session-check`에서 다음을 구현했다.
 
 - JWT 서명, claims, 만료 시각 검증
 - Bearer 토큰을 `auth_sessions`와 대조
@@ -52,6 +53,15 @@ BE-2의 직원 업무 처리, AI 분석, 검토, 환급·보상 의사결정 API
 - Spring Security 인증 객체 연결
 - `GET /api/v1/auth/session` 응답: `userId`, `role`
 - 직원 로그인 경로를 명세에 맞게 `/api/v1/auth/employee/login`으로 정리
+
+### AUTH-04 로그아웃
+
+현재 `feature/be-auth-logout`에서 다음을 구현했다.
+
+- `POST /api/v1/auth/logout` 추가
+- 현재 Bearer 토큰의 세션을 `revoked_at`으로 폐기
+- 폐기된 토큰의 재사용 차단
+- 고객·직원 공통 로그아웃 처리
 
 ## 검증 현황
 
@@ -62,12 +72,10 @@ BE-2의 직원 업무 처리, AI 분석, 검토, 환급·보상 의사결정 API
 
 ## 다음 순서
 
-1. AUTH-03 세션 확인 테스트 추가 및 컴파일 검증
-2. 기능 단위 커밋
-3. AUTH-04 로그아웃을 별도 브랜치에서 구현
-4. 공통 Bearer 인증과 예외 응답 정리
-5. 고객 사건 조회 API부터 고객 기능을 명세별로 구현
-6. DB 접속 가능 시 Flyway V1 적용 및 `validate` 확인
+1. 공통 인증 예외 응답과 인증 필터 동작 정리
+2. 고객 사건 조회 API부터 고객 기능을 명세별로 구현
+3. 고객 계정·사건 도메인 엔티티와 Repository 보강
+4. DB 접속 가능 시 Flyway V1 적용 및 `validate` 확인
 
 ## 미결정 사항
 

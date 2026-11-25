@@ -42,6 +42,12 @@ public class AuthSessionService {
         return new SessionPrincipal(claims.userId(), claims.role());
     }
 
+    @Transactional
+    public void logout(String accessToken) {
+        authSessionRepository.findByTokenHashAndRevokedAtIsNull(sha256(accessToken))
+                .ifPresent(session -> session.revoke(LocalDateTime.now(clock)));
+    }
+
     private String sha256(String value) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")
