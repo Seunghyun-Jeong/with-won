@@ -3,6 +3,7 @@ package com.withwon.customer.incident.controller;
 import com.withwon.auth.AuthSessionService;
 import com.withwon.domain.incident.CustomerIncidentService;
 import com.withwon.domain.evidence.EvidenceQueryService;
+import com.withwon.customer.incident.service.CustomerIncidentDraftService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -23,11 +24,14 @@ public class CustomerIncidentController {
 
     private final CustomerIncidentService customerIncidentService;
     private final EvidenceQueryService evidenceQueryService;
+    private final CustomerIncidentDraftService draftService;
 
     public CustomerIncidentController(CustomerIncidentService customerIncidentService,
-                                      EvidenceQueryService evidenceQueryService) {
+                                      EvidenceQueryService evidenceQueryService,
+                                      CustomerIncidentDraftService draftService) {
         this.customerIncidentService = customerIncidentService;
         this.evidenceQueryService = evidenceQueryService;
+        this.draftService = draftService;
     }
 
     @GetMapping
@@ -66,5 +70,16 @@ public class CustomerIncidentController {
                 .map(CustomerIncidentEvidenceResponse::from)
                 .toList();
         return ResponseEntity.ok(CustomerIncidentDetailResponse.from(incident, evidenceFiles));
+    }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{incidentId}")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<Void> deleteDraft(
+            Authentication authentication,
+            @PathVariable Long incidentId) {
+        AuthSessionService.SessionPrincipal principal =
+                (AuthSessionService.SessionPrincipal) authentication.getPrincipal();
+        draftService.deleteDraft(principal.userId(), incidentId);
+        return ResponseEntity.noContent().build();
     }
 }
