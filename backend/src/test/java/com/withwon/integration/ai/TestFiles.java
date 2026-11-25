@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 import javax.imageio.ImageIO;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -29,19 +30,31 @@ public final class TestFiles {
 
     /** 쪽마다 글 한 줄을 쓴 PDF. 빈 문자열인 쪽은 글자 층이 없는 쪽(스캔본처럼)이 된다. */
     public static byte[] pdf(String... pageTexts) throws IOException {
+        return pdfPages(Arrays.stream(pageTexts).map(t -> t.isEmpty() ? List.<String>of() : List.of(t)).toList());
+    }
+
+    /** 한 쪽의 같은 높이에 칸들을 200pt씩 띄워 쓴 PDF. 표의 한 행처럼. */
+    public static byte[] pdfRow(String... cells) throws IOException {
+        return pdfPages(List.of(List.of(cells)));
+    }
+
+    // 쪽마다 칸들을 왼쪽 72pt부터 200pt 간격으로, 아래에서 700pt 높이에 12pt로 쓴다.
+    private static byte[] pdfPages(List<List<String>> pages) throws IOException {
         try (var doc = new PDDocument(); var out = new ByteArrayOutputStream()) {
-            for (String text : pageTexts) {
+            for (List<String> cells : pages) {
                 var page = new PDPage();
                 doc.addPage(page);
-                if (text.isEmpty()) {
+                if (cells.isEmpty()) {
                     continue;
                 }
                 try (var content = new PDPageContentStream(doc, page)) {
-                    content.beginText();
-                    content.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
-                    content.newLineAtOffset(72, 700);
-                    content.showText(text);
-                    content.endText();
+                    for (int i = 0; i < cells.size(); i++) {
+                        content.beginText();
+                        content.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
+                        content.newLineAtOffset(72 + 200 * i, 700);
+                        content.showText(cells.get(i));
+                        content.endText();
+                    }
                 }
             }
             doc.save(out);

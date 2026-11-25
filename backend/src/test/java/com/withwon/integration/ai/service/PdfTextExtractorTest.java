@@ -36,6 +36,20 @@ class PdfTextExtractorTest {
     }
 
     @Test
+    void 같은_높이라도_글자_크기보다_넓게_떨어진_글은_다른_줄이다() throws IOException {
+        List<ReadLine> lines = extractor.extract(TestFiles.pdfRow("Name", "Kim Woori")).orElseThrow();
+
+        assertThat(lines).extracting(ReadLine::text).containsExactly("Name", "Kim Woori");
+    }
+
+    @Test
+    void 띄어쓰기로_끝난_칸도_넓게_떨어진_다음_칸과_다른_줄이다() throws IOException {
+        List<ReadLine> lines = extractor.extract(TestFiles.pdfRow("Name ", "Kim Woori")).orElseThrow();
+
+        assertThat(lines).extracting(ReadLine::text).containsExactly("Name", "Kim Woori");
+    }
+
+    @Test
     void 글자_층이_없는_쪽이_하나라도_있으면_전자_PDF가_아니다() throws IOException {
         assertThat(extractor.extract(TestFiles.pdf("Hello", ""))).isEmpty();
     }
@@ -49,6 +63,15 @@ class PdfTextExtractorTest {
 
         assertThat(all).contains(victim.path("name").asString(), victim.path("acct").asString(),
                 victim.path("mobile").asString());
+    }
+
+    @Test
+    void 김우리_전자_신청서는_표_칸마다_줄이_나뉜다() throws IOException {
+        List<String> texts = extractor.extract(TestFiles.kimWoori("01_피해구제신청서_전자.pdf"))
+                .orElseThrow().stream().map(ReadLine::text).toList();
+
+        assertThat(texts).containsSubsequence("성 명", "김우리", "생년월일", "1990. 5. 12.")
+                .contains("자산의 종류 및", "3,000,000원");
     }
 
     @Test
