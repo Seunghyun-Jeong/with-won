@@ -15,29 +15,33 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * 진짜 CLOVA OCR로 김우리 서류(PDF, 사진)를 모두 읽어 본다. 키가 있을 때만 돈다.
- * 실행: OCR_API_URL=... OCR_API_KEY=... ./gradlew test --tests '*KimWooriOcrRun' --rerun
- * (--rerun: 환경변수는 Gradle 입력이 아니라서, 키 없이 한 번 돌린 뒤에는 이게 없으면 건너뛴 결과를 그대로 쓴다.)
+ * 진짜 CLOVA OCR로 김우리 서류(PDF, 사진)를 모두 읽어 본다.
+ * 실행: backend/.env에 OCR_API_URL, OCR_API_KEY를 채우고 ./gradlew clovaTest (./gradlew test에서는 clova 태그라 빠진다)
  * 결과: build/ocr-kim-woori/<서류>.txt(쪽, bbox, 글)와 summary.txt(정답 값을 찾았는지).
- * 이름이 *Test가 아니어도 Gradle은 클래스 안의 @Test를 모두 돌리므로, 키가 없으면 아래 조건으로 건너뛴다.
  */
-@EnabledIfEnvironmentVariable(named = "OCR_API_KEY", matches = ".+")
+@Tag("clova")
 class KimWooriOcrRun {
 
     private static final Path OUT = Path.of("build/ocr-kim-woori");
+    // 앱(application.properties의 spring.config.import)과 같은 .env를 같은 properties 형식으로 읽는다.
+    private static final Path ENV = Path.of(".env");
 
     @Test
     void 김우리_서류를_모두_읽는다() throws Exception {
         assumeTrue(Files.isDirectory(TestFiles.KIM_WOORI), "김우리 시험 서류가 없어 건너뜀");
+        Properties env = Files.exists(ENV) ? PropertiesLoaderUtils.loadProperties(new FileSystemResource(ENV)) : new Properties();
         var service = new ReadService(new PdfTextExtractor(),
-                new ClovaOcrClient(System.getenv("OCR_API_URL"), System.getenv("OCR_API_KEY")),
+                new ClovaOcrClient(env.getProperty("OCR_API_URL", ""), env.getProperty("OCR_API_KEY", "")),
                 new ClovaOcrParser(new JsonMapper()));
         Map<String, String> expected = expectedValues(TestFiles.kimWooriAnswer());
         Files.createDirectories(OUT);

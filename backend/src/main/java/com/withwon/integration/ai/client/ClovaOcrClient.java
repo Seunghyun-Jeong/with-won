@@ -29,7 +29,7 @@ public class ClovaOcrClient {
     public String recognize(byte[] data, String format) {
         // 키가 없어도 앱은 떠야 하므로(OCR을 안 쓰는 기능, 팀원 PC) 부를 때 막는다.
         if (url.isBlank() || secret.isBlank()) {
-            throw new IllegalStateException("환경변수 OCR_API_URL, OCR_API_KEY가 없어 OCR을 부를 수 없음");
+            throw new IllegalStateException("backend/.env나 환경변수에 OCR_API_URL, OCR_API_KEY가 없어 OCR을 부를 수 없음");
         }
         Map<String, Object> body = Map.of(
                 "version", "V2",
