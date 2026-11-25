@@ -24,6 +24,7 @@ BE-2의 직원 업무 처리, AI 분석, 검토, 환급·보상 의사결정 API
 - `feature/be-auth/api-contract-alignment`: 엑셀 API 명세 기준 인증 계약 정렬
 - `feature/be-customer/incident-list`: CUS-02 고객 사건 목록 API
 - `feature/be-customer/incident-detail`: CUS-03 고객 사건 상세 API
+- `feature/be-customer/incident-submit`: CUS-01 사건 및 신청 초안 생성 API
 
 기능별로 브랜치를 분리하고, 테스트가 끝난 뒤 기능 단위로 커밋한다. 현재 세션 확인 브랜치의 변경사항은 아직 커밋하지 않았다.
 
@@ -113,6 +114,17 @@ API 명세 원본은 `(우리WON) 프로젝트 산출물 양식 (4).xlsx`의 `+ 
 - 사건 핵심 정보와 고객 기본 프로필 반환
 - 사건에 연결된 증빙 파일 목록 반환
 - 미구현 집계 영역(신청, 동의, 보완, 변경, 결과)은 임의 응답으로 만들지 않고 후속 도메인 작업으로 분리
+
+### CUS-01 사건 및 신청 초안 생성
+
+현재 `feature/be-customer/incident-submit`에서 명세 기준 생성 API를 구현했다.
+
+- `POST /api/v1/customer/incidents`
+- 사건과 신청 초안을 하나의 트랜잭션으로 생성
+- `Idempotency-Key`와 요청 해시 저장
+- 동일 키·동일 요청은 기존 결과 반환
+- 동일 키·다른 요청은 충돌 처리
+- 신청 유형 중복 검증
 
 ## 검증 현황
 

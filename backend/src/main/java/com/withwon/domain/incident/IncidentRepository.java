@@ -16,4 +16,6 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
     Page<Incident> findAllByCustomer_IdAndStatus(Long customerId, String status, Pageable pageable);
 
     Optional<Incident> findByIdAndCustomer_Id(Long id, Long customerId);
+
+    Optional<Incident> findByCustomer_IdAndSubmitKey(Long customerId, String submitKey);
 }

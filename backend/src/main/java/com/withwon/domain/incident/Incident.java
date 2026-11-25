@@ -130,4 +130,9 @@ public class Incident {
     public String getSubmitRequestHash() {
         return submitRequestHash;
     }
+
+    public void setSubmitRequest(String submitKey, String submitRequestHash) {
+        this.submitKey = submitKey;
+        this.submitRequestHash = submitRequestHash;
+    }
 }
