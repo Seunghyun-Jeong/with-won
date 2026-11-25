@@ -72,6 +72,7 @@ BE-2의 직원 업무 처리, AI 분석, 검토, 환급·보상 의사결정 API
 - 고객(`customer_id`)과 담당 직원(`assigned_employee_id`) 관계 매핑
 - 고객별 최신 사건 목록 조회 Repository 추가
 - 고객별 사건 단건 조회 Repository 추가
+- 고객 ID를 조건으로 강제하는 사건 조회 서비스 추가
 - 상태값은 API 계약 확정 전까지 문자열로 유지
 
 ## 검증 현황
