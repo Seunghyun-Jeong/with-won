@@ -10,12 +10,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 import javax.imageio.ImageIO;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -86,8 +89,23 @@ public final class TestFiles {
 
     /** NAVER Cloud 공식 문서의 General OCR V2 응답 예시. */
     public static String officialClovaExample() throws IOException {
-        try (var in = TestFiles.class.getResourceAsStream("/ai/clova/general-v2-response.json")) {
+        return resource("/ai/clova/general-v2-response.json");
+    }
+
+    /** NAVER Cloud 공식 문서의 CLOVA Speech 로컬 파일 인식 sync 응답 예시. */
+    public static String officialSpeechExample() throws IOException {
+        return resource("/ai/clova/speech-sync-response.json");
+    }
+
+    private static String resource(String path) throws IOException {
+        try (var in = TestFiles.class.getResourceAsStream(path)) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         }
+    }
+
+    /** 앱(application.properties의 spring.config.import)과 같은 backend/.env를 같은 properties 형식으로 읽는다. 없으면 빈 값. */
+    public static Properties env() throws IOException {
+        Path env = Path.of(".env");
+        return Files.exists(env) ? PropertiesLoaderUtils.loadProperties(new FileSystemResource(env)) : new Properties();
     }
 }
