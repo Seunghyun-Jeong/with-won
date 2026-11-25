@@ -83,6 +83,7 @@ BE-2의 직원 업무 처리, AI 분석, 검토, 환급·보상 의사결정 API
 - `evidence_files`와 `evidence_versions` 엔티티 매핑
 - 파일과 버전의 관계 매핑
 - 고객 ID를 포함한 증빙 파일·버전 Repository 조회
+- 고객 소유권을 검증하는 증빙 조회 서비스 추가
 - 추출·마스킹 JSON 컬럼은 DB 구조 보존을 위해 문자열 JSON으로 매핑
 - AI 재시도·JSON Schema 검증 로직은 BE-2 범위로 구현하지 않음
 
