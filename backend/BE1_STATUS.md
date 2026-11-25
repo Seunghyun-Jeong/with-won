@@ -21,6 +21,7 @@ BE-2의 직원 업무 처리, AI 분석, 검토, 환급·보상 의사결정 API
 - `feature/be-auth-logout`: 로그아웃 구현
 - `feature/be-customer-incident-domain`: 고객 사건 도메인 매핑
 - `feature/be-customer-evidence-domain`: 고객 증빙 도메인 매핑
+- `feature/be-auth-api-contract-alignment`: 엑셀 API 명세 기준 인증 계약 정렬
 
 기능별로 브랜치를 분리하고, 테스트가 끝난 뒤 기능 단위로 커밋한다. 현재 세션 확인 브랜치의 변경사항은 아직 커밋하지 않았다.
 
@@ -43,6 +44,9 @@ BE-2의 직원 업무 처리, AI 분석, 검토, 환급·보상 의사결정 API
 - HS256 JWT 발급
 - JWT 원문은 저장하지 않고 SHA-256 해시만 `auth_sessions.token_hash`에 저장
 - 고객·직원 인증 서비스와 단위 테스트 작성
+- API 산출물 기준 직원 로그인 요청 필드를 `employeeNumber`에서 `loginId`로 정렬
+
+API 명세 원본은 `(우리WON) 프로젝트 산출물 양식 (4).xlsx`의 `+ API명세서` 시트에서 확인했다. `AUTH-03`의 `profile` 상세 구조와 유휴 만료 응답 정책은 추가 계약 확인 후 반영한다.
 
 ## 현재 작업: AUTH-03 세션 확인
 

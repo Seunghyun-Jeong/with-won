@@ -44,7 +44,7 @@ public class EmployeeAuthService {
 
     @Transactional
     public EmployeeLoginResponse login(EmployeeLoginRequest request) {
-        Employee employee = employeeRepository.findByLoginIdAndActiveTrue(request.employeeNumber())
+        Employee employee = employeeRepository.findByLoginIdAndActiveTrue(request.loginId())
                 .filter(found -> passwordEncoder.matches(request.password(), found.getPasswordHash()))
                 .orElseThrow(InvalidCredentialsException::new);
 
