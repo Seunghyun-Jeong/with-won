@@ -12,14 +12,23 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final CustomerAuthService customerAuthService;
+    private final EmployeeAuthService employeeAuthService;
 
-    public AuthController(CustomerAuthService customerAuthService) {
+    public AuthController(CustomerAuthService customerAuthService,
+                          EmployeeAuthService employeeAuthService) {
         this.customerAuthService = customerAuthService;
+        this.employeeAuthService = employeeAuthService;
     }
 
     @PostMapping("/login")
     public ResponseEntity<CustomerLoginResponse> login(
             @Valid @RequestBody CustomerLoginRequest request) {
         return ResponseEntity.ok(customerAuthService.login(request));
+    }
+
+    @PostMapping("/employee/login")
+    public ResponseEntity<EmployeeLoginResponse> employeeLogin(
+            @Valid @RequestBody EmployeeLoginRequest request) {
+        return ResponseEntity.ok(employeeAuthService.login(request));
     }
 }
