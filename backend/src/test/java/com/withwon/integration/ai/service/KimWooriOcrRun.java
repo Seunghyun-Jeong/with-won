@@ -19,8 +19,6 @@ import java.util.Properties;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.support.PropertiesLoaderUtils;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -33,13 +31,11 @@ import tools.jackson.databind.json.JsonMapper;
 class KimWooriOcrRun {
 
     private static final Path OUT = Path.of("build/ocr-kim-woori");
-    // 앱(application.properties의 spring.config.import)과 같은 .env를 같은 properties 형식으로 읽는다.
-    private static final Path ENV = Path.of(".env");
 
     @Test
     void 김우리_서류를_모두_읽는다() throws Exception {
         assumeTrue(Files.isDirectory(TestFiles.KIM_WOORI), "김우리 시험 서류가 없어 건너뜀");
-        Properties env = Files.exists(ENV) ? PropertiesLoaderUtils.loadProperties(new FileSystemResource(ENV)) : new Properties();
+        Properties env = TestFiles.env();
         var service = new ReadService(new PdfTextExtractor(),
                 new ClovaOcrClient(env.getProperty("OCR_API_URL", ""), env.getProperty("OCR_API_KEY", "")),
                 new ClovaOcrParser(new JsonMapper()));
