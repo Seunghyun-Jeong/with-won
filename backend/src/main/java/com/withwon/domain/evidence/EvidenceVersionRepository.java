@@ -8,4 +8,6 @@ public interface EvidenceVersionRepository extends JpaRepository<EvidenceVersion
 
     List<EvidenceVersion> findAllByEvidenceFile_IdAndEvidenceFile_Incident_Customer_IdOrderByVersionNoDesc(
             Long evidenceFileId, Long customerId);
+
+    void deleteAllByEvidenceFile_Id(Long evidenceFileId);
 }

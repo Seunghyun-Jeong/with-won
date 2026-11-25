@@ -2,26 +2,37 @@ package com.withwon.customer.evidence.controller;
 
 import com.withwon.auth.AuthSessionService;
 import com.withwon.customer.evidence.service.CustomerEvidenceUploadService;
+import com.withwon.customer.evidence.service.CustomerEvidenceAccessService;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
+
 @RestController
 @RequestMapping("/api/v1/customer/incidents/{incidentId}/evidences")
 public class CustomerEvidenceController {
 
     private final CustomerEvidenceUploadService uploadService;
+    private final CustomerEvidenceAccessService accessService;
 
-    public CustomerEvidenceController(CustomerEvidenceUploadService uploadService) {
+    public CustomerEvidenceController(CustomerEvidenceUploadService uploadService,
+                                      CustomerEvidenceAccessService accessService) {
         this.uploadService = uploadService;
+        this.accessService = accessService;
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -39,5 +50,36 @@ public class CustomerEvidenceController {
                 refundTarget, compensationTarget, file);
         return ResponseEntity.status(201)
                 .body(EvidenceUploadResponse.from(uploaded.evidenceFile(), uploaded.evidenceVersion()));
+    }
+
+    @GetMapping("/{evidenceFileId}/content")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<Resource> content(
+            Authentication authentication,
+            @PathVariable Long incidentId,
+            @PathVariable Long evidenceFileId) {
+        AuthSessionService.SessionPrincipal principal =
+                (AuthSessionService.SessionPrincipal) authentication.getPrincipal();
+        var downloaded = accessService.load(principal.userId(), incidentId, evidenceFileId);
+        MediaType mediaType = MediaType.parseMediaType(downloaded.version().getMimeType());
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .contentLength(downloaded.version().getSizeBytes())
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(downloaded.version().getOriginalName(), StandardCharsets.UTF_8)
+                        .build().toString())
+                .body(downloaded.resource());
+    }
+
+    @DeleteMapping("/{evidenceFileId}")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<Void> delete(
+            Authentication authentication,
+            @PathVariable Long incidentId,
+            @PathVariable Long evidenceFileId) {
+        AuthSessionService.SessionPrincipal principal =
+                (AuthSessionService.SessionPrincipal) authentication.getPrincipal();
+        accessService.delete(principal.userId(), incidentId, evidenceFileId);
+        return ResponseEntity.noContent().build();
     }
 }
