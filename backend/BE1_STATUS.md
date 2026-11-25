@@ -19,6 +19,7 @@ BE-2의 직원 업무 처리, AI 분석, 검토, 환급·보상 의사결정 API
 - `feature/be-auth-employee-login`: 직원 로그인 구현
 - `feature/be-auth-session-check`: 현재 작업 중인 세션 확인 구현
 - `feature/be-auth-logout`: 로그아웃 구현
+- `feature/be-customer-incident-domain`: 고객 사건 도메인 매핑
 
 기능별로 브랜치를 분리하고, 테스트가 끝난 뒤 기능 단위로 커밋한다. 현재 세션 확인 브랜치의 변경사항은 아직 커밋하지 않았다.
 
@@ -63,6 +64,16 @@ BE-2의 직원 업무 처리, AI 분석, 검토, 환급·보상 의사결정 API
 - 폐기된 토큰의 재사용 차단
 - 고객·직원 공통 로그아웃 처리
 
+### 고객 사건 도메인 기반
+
+현재 `feature/be-customer-incident-domain`에서 API 명세와 독립적인 DB 도메인 기반을 준비했다.
+
+- 최신 `incidents` 테이블을 `Incident` 엔티티로 매핑
+- 고객(`customer_id`)과 담당 직원(`assigned_employee_id`) 관계 매핑
+- 고객별 최신 사건 목록 조회 Repository 추가
+- 고객별 사건 단건 조회 Repository 추가
+- 상태값은 API 계약 확정 전까지 문자열로 유지
+
 ## 검증 현황
 
 - 고객 로그인, 직원 로그인, JWT 발급 단위 테스트는 통과했다.
@@ -73,9 +84,10 @@ BE-2의 직원 업무 처리, AI 분석, 검토, 환급·보상 의사결정 API
 ## 다음 순서
 
 1. 공통 인증 예외 응답과 인증 필터 동작 정리
-2. 고객 사건 조회 API부터 고객 기능을 명세별로 구현
-3. 고객 계정·사건 도메인 엔티티와 Repository 보강
-4. DB 접속 가능 시 Flyway V1 적용 및 `validate` 확인
+2. API 명세 확정 후 고객 사건 목록 조회 API 구현
+3. 고객 사건 상세 조회 API 구현
+4. 고객 계정·사건 도메인 엔티티와 Repository 보강
+5. DB 접속 가능 시 Flyway V1 적용 및 `validate` 확인
 
 ## 미결정 사항
 
