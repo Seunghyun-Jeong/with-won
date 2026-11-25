@@ -135,4 +135,12 @@ public class Incident {
         this.submitKey = submitKey;
         this.submitRequestHash = submitRequestHash;
     }
+
+    public boolean isDraft() {
+        return "DRAFT".equals(status);
+    }
+
+    public void updateDescription(String description) {
+        this.description = description;
+    }
 }

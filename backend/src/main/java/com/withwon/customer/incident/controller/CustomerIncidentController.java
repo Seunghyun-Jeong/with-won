@@ -4,6 +4,8 @@ import com.withwon.auth.AuthSessionService;
 import com.withwon.domain.incident.CustomerIncidentService;
 import com.withwon.domain.evidence.EvidenceQueryService;
 import com.withwon.customer.incident.service.CustomerIncidentDraftService;
+import com.withwon.customer.incident.service.CustomerIncidentDraftUpdateService;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -25,13 +27,16 @@ public class CustomerIncidentController {
     private final CustomerIncidentService customerIncidentService;
     private final EvidenceQueryService evidenceQueryService;
     private final CustomerIncidentDraftService draftService;
+    private final CustomerIncidentDraftUpdateService draftUpdateService;
 
     public CustomerIncidentController(CustomerIncidentService customerIncidentService,
                                       EvidenceQueryService evidenceQueryService,
-                                      CustomerIncidentDraftService draftService) {
+                                      CustomerIncidentDraftService draftService,
+                                      CustomerIncidentDraftUpdateService draftUpdateService) {
         this.customerIncidentService = customerIncidentService;
         this.evidenceQueryService = evidenceQueryService;
         this.draftService = draftService;
+        this.draftUpdateService = draftUpdateService;
     }
 
     @GetMapping
@@ -81,5 +86,18 @@ public class CustomerIncidentController {
                 (AuthSessionService.SessionPrincipal) authentication.getPrincipal();
         draftService.deleteDraft(principal.userId(), incidentId);
         return ResponseEntity.noContent().build();
+    }
+
+    @org.springframework.web.bind.annotation.PatchMapping("/{incidentId}/draft")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<UpdateIncidentDraftResponse> updateDraft(
+            Authentication authentication,
+            @PathVariable Long incidentId,
+            @Valid @org.springframework.web.bind.annotation.RequestBody UpdateIncidentDraftRequest request) {
+        AuthSessionService.SessionPrincipal principal =
+                (AuthSessionService.SessionPrincipal) authentication.getPrincipal();
+        var updated = draftUpdateService.update(principal.userId(), incidentId, request);
+        return ResponseEntity.ok(UpdateIncidentDraftResponse.from(
+                updated.incident(), updated.applications(), updated.savedAt()));
     }
 }
