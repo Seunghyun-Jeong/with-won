@@ -1,5 +1,6 @@
 package com.withwon.auth;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +22,7 @@ public class JwtTokenService {
     private final long expirationSeconds;
     private final Clock clock;
 
+    @Autowired
     public JwtTokenService(
             @Value("${withwon.auth.jwt-secret}") String secret,
             @Value("${withwon.auth.jwt-expiration-seconds:3600}") long expirationSeconds) {

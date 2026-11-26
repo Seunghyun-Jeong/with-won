@@ -1,6 +1,7 @@
 package com.withwon.auth;
 
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -16,6 +17,7 @@ public class AuthSessionService {
     private final JwtTokenService jwtTokenService;
     private final Clock clock;
 
+    @Autowired
     public AuthSessionService(AuthSessionRepository authSessionRepository,
                               JwtTokenService jwtTokenService) {
         this(authSessionRepository, jwtTokenService, Clock.systemUTC());

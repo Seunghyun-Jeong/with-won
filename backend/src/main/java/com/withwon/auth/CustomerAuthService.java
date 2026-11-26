@@ -3,6 +3,7 @@ package com.withwon.auth;
 import com.withwon.domain.customer.Customer;
 import com.withwon.domain.customer.CustomerRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +24,7 @@ public class CustomerAuthService {
     private final JwtTokenService jwtTokenService;
     private final Clock clock;
 
+    @Autowired
     public CustomerAuthService(CustomerRepository customerRepository,
                                AuthSessionRepository authSessionRepository,
                                PasswordEncoder passwordEncoder,
