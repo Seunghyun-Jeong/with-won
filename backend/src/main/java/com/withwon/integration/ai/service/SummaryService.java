@@ -1,11 +1,9 @@
 package com.withwon.integration.ai.service;
 
 import com.withwon.integration.ai.client.LlmClient;
-import com.withwon.integration.ai.dto.Evidence;
 import com.withwon.integration.ai.dto.EvidenceFragment;
-import com.withwon.integration.ai.dto.EvidenceStatus;
 import com.withwon.integration.ai.dto.MaskLabel;
-import com.withwon.integration.ai.dto.SummaryItem;
+import com.withwon.integration.ai.dto.FindingText;
 import com.withwon.integration.ai.dto.SummaryResult;
 import java.util.ArrayList;
 import java.util.List;
@@ -82,14 +80,7 @@ public class SummaryService {
         return errors;
     }
 
-    private static List<SummaryItem> items(LlmTask.Run run, String field) {
-        return run.answer().path(field).valueStream().map(item -> {
-            String text = item.path("text").stringValue();
-            List<Evidence> evidence = run.evidence(item);
-            List<String> unknown = run.linker().unknown(text);
-            List<String> amounts = run.verifier().unverifiedAmounts(text, evidence);
-            EvidenceStatus status = EvidenceVerifier.status(evidence, !unknown.isEmpty() || !amounts.isEmpty());
-            return new SummaryItem(text, run.linker().display(text), status, evidence, unknown, amounts);
-        }).toList();
+    private static List<FindingText> items(LlmTask.Run run, String field) {
+        return run.answer().path(field).valueStream().map(item -> run.check(item, "text")).toList();
     }
 }

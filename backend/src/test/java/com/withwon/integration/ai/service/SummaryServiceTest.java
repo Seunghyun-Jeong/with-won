@@ -6,7 +6,7 @@ import com.withwon.integration.ai.dto.EvidenceFragment;
 import com.withwon.integration.ai.dto.EvidenceStatus;
 import com.withwon.integration.ai.dto.MaskLabel;
 import com.withwon.integration.ai.dto.MaskLabel.Kind;
-import com.withwon.integration.ai.dto.SummaryItem;
+import com.withwon.integration.ai.dto.FindingText;
 import com.withwon.integration.ai.dto.SummaryResult;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -75,7 +75,7 @@ class SummaryServiceTest {
                 List.of(item("이체내역의 [예금주1] 계좌가 신청서의 [받은계좌1]과 같은지 확인", ev(5, "[예금주1]"),
                         ev(2, "[받은계좌1]"))));
 
-        assertThat(result.sentences()).extracting(SummaryItem::displayText).containsExactly(
+        assertThat(result.sentences()).extracting(FindingText::displayText).containsExactly(
                 "검찰 수사관을 사칭한 전화로 사건이 시작됐다", "김우리가 482901-01-336417로 300만원을 이체했다");
         assertThat(result.sentences().getLast().text()).isEqualTo("[피해자]가 [받은계좌1]로 300만원을 이체했다");
         assertThat(result.checks()).singleElement().satisfies(c -> {
@@ -92,7 +92,7 @@ class SummaryServiceTest {
     void 근거가_틀린_문장만_근거_부족이고_나머지_문장은_그대로_남는다() {
         SummaryResult result = run(List.of(CALL, item("[피해자]가 앱을 설치했다", ev(6, "앱을 설치"))), List.of());
 
-        assertThat(result.sentences()).extracting(SummaryItem::status)
+        assertThat(result.sentences()).extracting(FindingText::status)
                 .containsExactly(EvidenceStatus.VERIFIED, EvidenceStatus.NO_EVIDENCE);
         assertThat(result.sentences().getLast().evidence()).singleElement()
                 .satisfies(e -> assertThat(e.fragmentId()).isNull());
@@ -100,7 +100,7 @@ class SummaryServiceTest {
 
     @Test
     void 대응표로_잇지_못한_이름표가_있으면_확인_필요다() {
-        SummaryItem s = run(List.of(item("[받은계좌2]로도 이체했다", ev(2, "[받은계좌1]로 이체했고"))), List.of())
+        FindingText s = run(List.of(item("[받은계좌2]로도 이체했다", ev(2, "[받은계좌1]로 이체했고"))), List.of())
                 .sentences().getFirst();
 
         assertThat(s.status()).isEqualTo(EvidenceStatus.NEEDS_CHECK);
@@ -109,7 +109,7 @@ class SummaryServiceTest {
 
     @Test
     void 문장의_금액이_확인된_근거에_없으면_확인_필요로_내리고_그_금액을_남긴다() {
-        SummaryItem s = run(List.of(item("[피해자]가 두 번에 걸쳐 모두 12,500,000원을 보냈다",
+        FindingText s = run(List.of(item("[피해자]가 두 번에 걸쳐 모두 12,500,000원을 보냈다",
                 ev(3, "-3,000,000원"), ev(4, "-9,500,000원"))), List.of()).sentences().getFirst();
 
         assertThat(s.status()).isEqualTo(EvidenceStatus.NEEDS_CHECK);
@@ -118,7 +118,7 @@ class SummaryServiceTest {
 
     @Test
     void 금액은_단위를_맞춰_대조한다() {
-        SummaryItem s = run(List.of(item("[피해자]가 300만원과 950만원을 보냈다",
+        FindingText s = run(List.of(item("[피해자]가 300만원과 950만원을 보냈다",
                 ev(3, "-3,000,000원"), ev(4, "-9,500,000원"))), List.of()).sentences().getFirst();
 
         assertThat(s.status()).isEqualTo(EvidenceStatus.VERIFIED);
@@ -127,7 +127,7 @@ class SummaryServiceTest {
 
     @Test
     void 금액은_확인된_근거에서만_찾는다() {
-        SummaryItem s = run(List.of(item("950만원 이체가 수사관 전화 뒤에 있었다",
+        FindingText s = run(List.of(item("950만원 이체가 수사관 전화 뒤에 있었다",
                 ev(1, "수사관이라는 사람에게서"), ev(4, "9,500,000원 이체"))), List.of()).sentences().getFirst();
 
         assertThat(s.unverifiedAmounts()).containsExactly("950만원");
@@ -135,7 +135,7 @@ class SummaryServiceTest {
 
     @Test
     void 확인_필요_항목도_같은_금액_규칙으로_검증한다() {
-        SummaryItem c = run(List.of(CALL), List.of(item("이체 합계 1,250만원을 원장과 대조해야 함",
+        FindingText c = run(List.of(CALL), List.of(item("이체 합계 1,250만원을 원장과 대조해야 함",
                 ev(3, "-3,000,000원"), ev(4, "-9,500,000원")))).checks().getFirst();
 
         assertThat(c.status()).isEqualTo(EvidenceStatus.NEEDS_CHECK);
