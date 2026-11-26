@@ -1,0 +1,111 @@
+{
+    "result": "COMPLETED",
+    "message": "Succeeded",
+    "token": "*****166039e486abbb90e4a84c3b3a5",
+    "version": "ncp_v2_v2.3.0-aa6cd8d-20231205_231211-3cf30bfc_v0.0.0_",
+    "params": {
+        "service": "ncp",
+        "domain": "general",
+        "lang": "enko",
+        "completion": "sync",
+        "callback": "",
+        "diarization": {
+            "enable": true,
+            "speakerCountMin": -1,
+            "speakerCountMax": -1
+        },
+        "sed": {
+            "enable": true
+        },
+        "boostings": [
+            {
+                "words": "안녕하세요, 테스트",
+                "weight": 1
+            }
+        ],
+        "forbiddens": "",
+        "wordAlignment": true,
+        "fullText": true,
+        "noiseFiltering": true,
+        "resultToObs": false,
+        "priority": 0,
+        "userdata": {
+            "_ncp_DomainCode": "NEST",
+            "_ncp_DomainId": 1,
+            "_ncp_TaskId": 442,
+            "_ncp_TraceId": "*****ce98ec342d8a8c8fe9191cec343",
+            "id": 1
+        }
+    },
+    "progress": 100,
+    "keywords": {},
+    "segments": [
+        {
+            "start": 5870,
+            "end": 8160,
+            "text": "서울 수영장입니다.",
+            "confidence": 0.9626975,
+            "diarization": {
+                "label": "2"
+            },
+            "speaker": {
+                "label": "2",
+                "name": "B",
+                "edited": false
+            },
+            "words": [
+                [5871, 6730, "서울"],
+                [6860, 7530, "수영장입니다."]
+            ],
+            "textEdited": "서울 수영장입니다."
+        },
+        {
+            "start": 8160,
+            "end": 12950,
+            "text": "입장료가 얼마예요? 5천 원이에요. 감사합니다.",
+            "confidence": 0.8835926,
+            "diarization": {
+                "label": "1"
+            },
+            "speaker": {
+                "label": "1",
+                "name": "A",
+                "edited": false
+            },
+            "words": [
+                [8161, 9220, "입장료가"],
+                [9390, 10020, "얼마예요?"],
+                [10410, 10640, "5천"],
+                [10710, 11140, "원이에요."],
+                [11910, 12500, "감사합니다."]
+            ],
+            "textEdited": "입장료가 얼마예요? 5천 원이에요. 감사합니다."
+        }
+    ],
+    "text": "서울 수영장입니다. 입장료가 얼마예요? 5천 원이에요. 감사합니다.",
+    "confidence": 0.9071357,
+    "speakers": [
+        {
+            "label": "1",
+            "name": "A",
+            "edited": false
+        },
+        {
+            "label": "2",
+            "name": "B",
+            "edited": false
+        }
+    ],
+    "events": [
+        {
+            "type": "music",
+            "label": "music",
+            "labelEdited": "music",
+            "start": 1400,
+            "end": 5000
+        }
+    ],
+    "eventTypes": [
+        "music"
+    ]
+}

@@ -1,4 +1,8 @@
 HELP.md
+
+### 키와 비밀번호. 값 없는 .env.example만 올린다 ###
+.env
+
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
@@ -42,3 +46,5 @@ out/
 ### Local progress notes ###
 BE1_STATUS.md
 storage/
+### Env ###
+.env
