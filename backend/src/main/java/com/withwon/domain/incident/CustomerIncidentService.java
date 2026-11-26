@@ -1,5 +1,7 @@
 package com.withwon.domain.incident;
 
+import com.withwon.domain.application.Application;
+import com.withwon.domain.application.ApplicationRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -13,9 +15,12 @@ import java.util.Optional;
 public class CustomerIncidentService {
 
     private final IncidentRepository incidentRepository;
+    private final ApplicationRepository applicationRepository;
 
-    public CustomerIncidentService(IncidentRepository incidentRepository) {
+    public CustomerIncidentService(IncidentRepository incidentRepository,
+                                   ApplicationRepository applicationRepository) {
         this.incidentRepository = incidentRepository;
+        this.applicationRepository = applicationRepository;
     }
 
     public List<Incident> findCustomerIncidents(Long customerId) {
@@ -29,6 +34,17 @@ public class CustomerIncidentService {
             throw new IllegalArgumentException("incidentId must not be null.");
         }
         return incidentRepository.findByIdAndCustomer_Id(incidentId, customerId);
+    }
+
+    public List<Application> findCustomerApplications(Long customerId, Long incidentId) {
+        requireCustomerId(customerId);
+        if (incidentId == null) {
+            throw new IllegalArgumentException("incidentId must not be null.");
+        }
+        if (incidentRepository.findByIdAndCustomer_Id(incidentId, customerId).isEmpty()) {
+            return List.of();
+        }
+        return applicationRepository.findAllByIncident_IdOrderByIdAsc(incidentId);
     }
 
     public Page<Incident> findCustomerIncidents(Long customerId, String status, Pageable pageable) {

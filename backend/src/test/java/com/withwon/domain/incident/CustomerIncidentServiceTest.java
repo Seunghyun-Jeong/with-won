@@ -1,5 +1,6 @@
 package com.withwon.domain.incident;
 
+import com.withwon.domain.application.ApplicationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
@@ -17,12 +18,14 @@ import static org.mockito.Mockito.when;
 class CustomerIncidentServiceTest {
 
     private IncidentRepository incidentRepository;
+    private ApplicationRepository applicationRepository;
     private CustomerIncidentService customerIncidentService;
 
     @BeforeEach
     void setUp() {
         incidentRepository = mock(IncidentRepository.class);
-        customerIncidentService = new CustomerIncidentService(incidentRepository);
+        applicationRepository = mock(ApplicationRepository.class);
+        customerIncidentService = new CustomerIncidentService(incidentRepository, applicationRepository);
     }
 
     @Test
@@ -47,6 +50,18 @@ class CustomerIncidentServiceTest {
     void rejectsMissingCustomerId() {
         assertThrows(IllegalArgumentException.class,
                 () -> customerIncidentService.findCustomerIncidents(null));
+    }
+
+    @Test
+    void findsApplicationsOnlyForCustomerOwnedIncident() {
+        Incident incident = mock(Incident.class);
+        List<com.withwon.domain.application.Application> applications = List.of(
+                mock(com.withwon.domain.application.Application.class));
+        when(incidentRepository.findByIdAndCustomer_Id(12L, 7L)).thenReturn(Optional.of(incident));
+        when(applicationRepository.findAllByIncident_IdOrderByIdAsc(12L)).thenReturn(applications);
+
+        assertEquals(applications, customerIncidentService.findCustomerApplications(7L, 12L));
+        verify(applicationRepository).findAllByIncident_IdOrderByIdAsc(12L);
     }
 
     @Test

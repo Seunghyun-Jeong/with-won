@@ -69,12 +69,17 @@ public class CustomerIncidentController {
                 (AuthSessionService.SessionPrincipal) authentication.getPrincipal();
         var incident = customerIncidentService.findCustomerIncident(principal.userId(), incidentId)
                 .orElseThrow(IncidentNotFoundException::new);
+        var applications = customerIncidentService
+                .findCustomerApplications(principal.userId(), incidentId)
+                .stream()
+                .map(com.withwon.customer.intake.controller.CreatedApplicationResponse::from)
+                .toList();
         var evidenceFiles = evidenceQueryService
                 .findIncidentEvidenceFiles(principal.userId(), incidentId)
                 .stream()
                 .map(CustomerIncidentEvidenceResponse::from)
                 .toList();
-        return ResponseEntity.ok(CustomerIncidentDetailResponse.from(incident, evidenceFiles));
+        return ResponseEntity.ok(CustomerIncidentDetailResponse.from(incident, applications, evidenceFiles));
     }
 
     @org.springframework.web.bind.annotation.DeleteMapping("/{incidentId}")

@@ -1,5 +1,6 @@
 package com.withwon.customer.incident.controller;
 
+import com.withwon.customer.intake.controller.CreatedApplicationResponse;
 import com.withwon.domain.incident.Incident;
 
 import java.time.LocalDateTime;
@@ -15,10 +16,12 @@ public record CustomerIncidentDetailResponse(
         LocalDateTime createdAt,
         LocalDateTime submittedAt,
         LocalDateTime closedAt,
+        List<CreatedApplicationResponse> applications,
         List<CustomerIncidentEvidenceResponse> evidenceFiles
 ) {
 
     public static CustomerIncidentDetailResponse from(Incident incident,
+                                                      List<CreatedApplicationResponse> applications,
                                                       List<CustomerIncidentEvidenceResponse> evidenceFiles) {
         return new CustomerIncidentDetailResponse(
                 incident.getId(),
@@ -30,6 +33,7 @@ public record CustomerIncidentDetailResponse(
                 incident.getCreatedAt(),
                 incident.getSubmittedAt(),
                 incident.getClosedAt(),
+                applications,
                 evidenceFiles);
     }
 }
