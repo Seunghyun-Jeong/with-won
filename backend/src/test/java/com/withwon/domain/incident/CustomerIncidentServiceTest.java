@@ -4,6 +4,7 @@ import com.withwon.domain.application.ApplicationRepository;
 import com.withwon.domain.application.ApplicationConsentRepository;
 import com.withwon.domain.supplement.SupplementRequestRepository;
 import com.withwon.domain.amendment.AmendmentRequestRepository;
+import com.withwon.domain.refund.RefundResultRecordRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
@@ -25,6 +26,7 @@ class CustomerIncidentServiceTest {
     private ApplicationConsentRepository applicationConsentRepository;
     private SupplementRequestRepository supplementRequestRepository;
     private AmendmentRequestRepository amendmentRequestRepository;
+    private RefundResultRecordRepository refundResultRecordRepository;
     private CustomerIncidentService customerIncidentService;
 
     @BeforeEach
@@ -34,9 +36,10 @@ class CustomerIncidentServiceTest {
         applicationConsentRepository = mock(ApplicationConsentRepository.class);
         supplementRequestRepository = mock(SupplementRequestRepository.class);
         amendmentRequestRepository = mock(AmendmentRequestRepository.class);
+        refundResultRecordRepository = mock(RefundResultRecordRepository.class);
         customerIncidentService = new CustomerIncidentService(
                 incidentRepository, applicationRepository, applicationConsentRepository,
-                supplementRequestRepository, amendmentRequestRepository);
+                supplementRequestRepository, amendmentRequestRepository, refundResultRecordRepository);
     }
 
     @Test
@@ -112,6 +115,19 @@ class CustomerIncidentServiceTest {
 
         assertEquals(requests, customerIncidentService.findCustomerAmendmentRequests(7L, 12L));
         verify(amendmentRequestRepository).findAllByIncident_IdOrderByCreatedAtDesc(12L);
+    }
+
+    @Test
+    void findsRefundResultsOnlyForCustomerOwnedIncident() {
+        Incident incident = mock(Incident.class);
+        List<com.withwon.domain.refund.RefundResultRecord> results = List.of(
+                mock(com.withwon.domain.refund.RefundResultRecord.class));
+        when(incidentRepository.findByIdAndCustomer_Id(12L, 7L)).thenReturn(Optional.of(incident));
+        when(refundResultRecordRepository.findAllByIncident_IdOrderByVersionNoDesc(12L))
+                .thenReturn(results);
+
+        assertEquals(results, customerIncidentService.findCustomerRefundResults(7L, 12L));
+        verify(refundResultRecordRepository).findAllByIncident_IdOrderByVersionNoDesc(12L);
     }
 
     @Test

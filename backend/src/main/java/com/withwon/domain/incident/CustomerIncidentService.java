@@ -8,6 +8,8 @@ import com.withwon.domain.supplement.SupplementRequest;
 import com.withwon.domain.supplement.SupplementRequestRepository;
 import com.withwon.domain.amendment.AmendmentRequest;
 import com.withwon.domain.amendment.AmendmentRequestRepository;
+import com.withwon.domain.refund.RefundResultRecord;
+import com.withwon.domain.refund.RefundResultRecordRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,17 +27,20 @@ public class CustomerIncidentService {
     private final ApplicationConsentRepository applicationConsentRepository;
     private final SupplementRequestRepository supplementRequestRepository;
     private final AmendmentRequestRepository amendmentRequestRepository;
+    private final RefundResultRecordRepository refundResultRecordRepository;
 
     public CustomerIncidentService(IncidentRepository incidentRepository,
                                    ApplicationRepository applicationRepository,
                                    ApplicationConsentRepository applicationConsentRepository,
                                    SupplementRequestRepository supplementRequestRepository,
-                                   AmendmentRequestRepository amendmentRequestRepository) {
+                                   AmendmentRequestRepository amendmentRequestRepository,
+                                   RefundResultRecordRepository refundResultRecordRepository) {
         this.incidentRepository = incidentRepository;
         this.applicationRepository = applicationRepository;
         this.applicationConsentRepository = applicationConsentRepository;
         this.supplementRequestRepository = supplementRequestRepository;
         this.amendmentRequestRepository = amendmentRequestRepository;
+        this.refundResultRecordRepository = refundResultRecordRepository;
     }
 
     public List<Incident> findCustomerIncidents(Long customerId) {
@@ -93,6 +98,17 @@ public class CustomerIncidentService {
             return List.of();
         }
         return amendmentRequestRepository.findAllByIncident_IdOrderByCreatedAtDesc(incidentId);
+    }
+
+    public List<RefundResultRecord> findCustomerRefundResults(Long customerId, Long incidentId) {
+        requireCustomerId(customerId);
+        if (incidentId == null) {
+            throw new IllegalArgumentException("incidentId must not be null.");
+        }
+        if (incidentRepository.findByIdAndCustomer_Id(incidentId, customerId).isEmpty()) {
+            return List.of();
+        }
+        return refundResultRecordRepository.findAllByIncident_IdOrderByVersionNoDesc(incidentId);
     }
 
     public Page<Incident> findCustomerIncidents(Long customerId, String status, Pageable pageable) {
