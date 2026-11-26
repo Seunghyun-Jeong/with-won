@@ -1,7 +1,10 @@
 package com.withwon.integration.ai.service;
 
+import com.withwon.integration.ai.dto.CaseKnown;
 import com.withwon.integration.ai.dto.MaskInput;
 import com.withwon.integration.ai.dto.MaskKnown;
+import com.withwon.integration.ai.dto.MaskLabel;
+import com.withwon.integration.ai.dto.MaskResult;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -78,7 +81,7 @@ public class MaskService {
     private static final int BARE_RUNS = 3;
     private static final int QUIET = 2;
     private static final int WAIT_FOR_ANSWER = 10;
-    private static final Pattern PHONE = Pattern.compile("0(?:1[016789]|2|[3-6][1-5]|70)\\d{7,8}");
+    static final Pattern PHONE = Pattern.compile("0(?:1[016789]|2|[3-6][1-5]|70)\\d{7,8}");
     // 대표번호 8자리는 한 자리씩 부른 인증번호와 길이가 같아, 하이픈으로 적힌 것만 전화번호로 본다.
     private static final Pattern REP_PHONE = Pattern.compile("1[5-9]\\d{2}-\\d{4}");
     private static final Pattern PASSPORT = Pattern.compile(
@@ -194,6 +197,18 @@ public class MaskService {
     }
 
     private record Span(int start, int end, String label) {
+    }
+
+    /**
+     * LLM에 보내기 직전의 한 입구. 번호를 가린 뒤 사람, 번호, 주소를 사건의 이름표로 바꾼다(Pseudonymizer).
+     * existing은 이 사건에 이미 매긴 대응표(mask_label)이고, 돌려주는 labels는 거기에 새로 매긴 것을 끝에 붙인 전체다.
+     */
+    public MaskResult maskForLlm(List<MaskInput> fragments, CaseKnown known, List<MaskLabel> existing) {
+        Pseudonymizer names = new Pseudonymizer(known, existing);
+        List<String> texts = mask(fragments, known.maskKnown()).stream()
+                .map(t -> t == null ? null : names.apply(t))
+                .toList();
+        return new MaskResult(texts, names.labels());
     }
 
     /** 한 서류(녹음)의 조각을 순서대로 받아 같은 순서로 가린 글을 돌려준다. 가림에 실패한 조각은 null. */
