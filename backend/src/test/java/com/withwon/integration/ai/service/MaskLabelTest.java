@@ -1,9 +1,8 @@
 package com.withwon.integration.ai.service;
 
+import static com.withwon.integration.ai.TestFiles.KIM_WOORI_KNOWN;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.withwon.integration.ai.dto.CaseKnown;
-import com.withwon.integration.ai.dto.CaseKnown.Payee;
 import com.withwon.integration.ai.dto.MaskInput;
 import com.withwon.integration.ai.dto.MaskLabel;
 import com.withwon.integration.ai.dto.MaskResult;
@@ -14,20 +13,10 @@ import org.junit.jupiter.api.Test;
 // 이름표 전환. 글은 김우리 서류(CLOVA OCR)와 통화녹음(CLOVA Speech)에서 실제로 읽힌 모양 그대로다(build/ocr-kim-woori, build/speech-kim-woori, 11-25).
 class MaskLabelTest {
 
-    private static final CaseKnown KIM_WOORI = new CaseKnown(
-            List.of("900512-2123456"),
-            "김우리",
-            "010-2847-5931",
-            "kimwoori@example.com",
-            "서울특별시 성동구 왕십리로 123, 101동 1004호 (행당동, 한빛아파트)",
-            List.of("1002-384-729105"),
-            List.of(new Payee("482901-01-336417", "박민수"), new Payee("110-472-836150", "이정호")),
-            List.of("우리은행 왕십리지점"));
-
     private final MaskService service = new MaskService();
 
     private MaskResult lines(List<MaskLabel> existing, String... texts) {
-        return service.maskForLlm(Arrays.stream(texts).map(t -> new MaskInput(null, t)).toList(), KIM_WOORI, existing);
+        return service.maskForLlm(Arrays.stream(texts).map(t -> new MaskInput(null, t)).toList(), KIM_WOORI_KNOWN, existing);
     }
 
     private List<String> lines(String... texts) {
@@ -35,7 +24,7 @@ class MaskLabelTest {
     }
 
     private List<String> talk(String... texts) {
-        return service.maskForLlm(Arrays.stream(texts).map(t -> new MaskInput("A", t)).toList(), KIM_WOORI, List.of())
+        return service.maskForLlm(Arrays.stream(texts).map(t -> new MaskInput("A", t)).toList(), KIM_WOORI_KNOWN, List.of())
                 .texts();
     }
 
