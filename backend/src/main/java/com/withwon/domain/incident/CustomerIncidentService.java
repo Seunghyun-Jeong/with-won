@@ -2,6 +2,8 @@ package com.withwon.domain.incident;
 
 import com.withwon.domain.application.Application;
 import com.withwon.domain.application.ApplicationRepository;
+import com.withwon.domain.application.ApplicationConsent;
+import com.withwon.domain.application.ApplicationConsentRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -16,11 +18,14 @@ public class CustomerIncidentService {
 
     private final IncidentRepository incidentRepository;
     private final ApplicationRepository applicationRepository;
+    private final ApplicationConsentRepository applicationConsentRepository;
 
     public CustomerIncidentService(IncidentRepository incidentRepository,
-                                   ApplicationRepository applicationRepository) {
+                                   ApplicationRepository applicationRepository,
+                                   ApplicationConsentRepository applicationConsentRepository) {
         this.incidentRepository = incidentRepository;
         this.applicationRepository = applicationRepository;
+        this.applicationConsentRepository = applicationConsentRepository;
     }
 
     public List<Incident> findCustomerIncidents(Long customerId) {
@@ -45,6 +50,17 @@ public class CustomerIncidentService {
             return List.of();
         }
         return applicationRepository.findAllByIncident_IdOrderByIdAsc(incidentId);
+    }
+
+    public List<ApplicationConsent> findCustomerConsents(Long customerId, Long incidentId) {
+        requireCustomerId(customerId);
+        if (incidentId == null) {
+            throw new IllegalArgumentException("incidentId must not be null.");
+        }
+        if (incidentRepository.findByIdAndCustomer_Id(incidentId, customerId).isEmpty()) {
+            return List.of();
+        }
+        return applicationConsentRepository.findAllByIncident_IdOrderByAgreedAtDesc(incidentId);
     }
 
     public Page<Incident> findCustomerIncidents(Long customerId, String status, Pageable pageable) {

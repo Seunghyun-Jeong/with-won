@@ -17,11 +17,13 @@ public record CustomerIncidentDetailResponse(
         LocalDateTime submittedAt,
         LocalDateTime closedAt,
         List<CreatedApplicationResponse> applications,
+        List<CustomerIncidentConsentResponse> consents,
         List<CustomerIncidentEvidenceResponse> evidenceFiles
 ) {
 
     public static CustomerIncidentDetailResponse from(Incident incident,
                                                       List<CreatedApplicationResponse> applications,
+                                                      List<CustomerIncidentConsentResponse> consents,
                                                       List<CustomerIncidentEvidenceResponse> evidenceFiles) {
         return new CustomerIncidentDetailResponse(
                 incident.getId(),
@@ -34,6 +36,7 @@ public record CustomerIncidentDetailResponse(
                 incident.getSubmittedAt(),
                 incident.getClosedAt(),
                 applications,
+                consents,
                 evidenceFiles);
     }
 }

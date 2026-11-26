@@ -74,12 +74,17 @@ public class CustomerIncidentController {
                 .stream()
                 .map(com.withwon.customer.intake.controller.CreatedApplicationResponse::from)
                 .toList();
+        var consents = customerIncidentService.findCustomerConsents(principal.userId(), incidentId)
+                .stream()
+                .map(CustomerIncidentConsentResponse::from)
+                .toList();
         var evidenceFiles = evidenceQueryService
                 .findIncidentEvidenceFiles(principal.userId(), incidentId)
                 .stream()
                 .map(CustomerIncidentEvidenceResponse::from)
                 .toList();
-        return ResponseEntity.ok(CustomerIncidentDetailResponse.from(incident, applications, evidenceFiles));
+        return ResponseEntity.ok(CustomerIncidentDetailResponse.from(
+                incident, applications, consents, evidenceFiles));
     }
 
     @org.springframework.web.bind.annotation.DeleteMapping("/{incidentId}")

@@ -45,6 +45,10 @@ public class ApplicationFormVersion {
     protected ApplicationFormVersion() {
     }
 
+    public Long getId() {
+        return id;
+    }
+
     public ApplicationFormVersion(Application application, Integer versionNo, String versionType,
                                   String formData, String schemaVersion) {
         this.application = application;

@@ -1,6 +1,7 @@
 package com.withwon.domain.incident;
 
 import com.withwon.domain.application.ApplicationRepository;
+import com.withwon.domain.application.ApplicationConsentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
@@ -19,13 +20,16 @@ class CustomerIncidentServiceTest {
 
     private IncidentRepository incidentRepository;
     private ApplicationRepository applicationRepository;
+    private ApplicationConsentRepository applicationConsentRepository;
     private CustomerIncidentService customerIncidentService;
 
     @BeforeEach
     void setUp() {
         incidentRepository = mock(IncidentRepository.class);
         applicationRepository = mock(ApplicationRepository.class);
-        customerIncidentService = new CustomerIncidentService(incidentRepository, applicationRepository);
+        applicationConsentRepository = mock(ApplicationConsentRepository.class);
+        customerIncidentService = new CustomerIncidentService(
+                incidentRepository, applicationRepository, applicationConsentRepository);
     }
 
     @Test
@@ -62,6 +66,19 @@ class CustomerIncidentServiceTest {
 
         assertEquals(applications, customerIncidentService.findCustomerApplications(7L, 12L));
         verify(applicationRepository).findAllByIncident_IdOrderByIdAsc(12L);
+    }
+
+    @Test
+    void findsConsentsOnlyForCustomerOwnedIncident() {
+        Incident incident = mock(Incident.class);
+        List<com.withwon.domain.application.ApplicationConsent> consents = List.of(
+                mock(com.withwon.domain.application.ApplicationConsent.class));
+        when(incidentRepository.findByIdAndCustomer_Id(12L, 7L)).thenReturn(Optional.of(incident));
+        when(applicationConsentRepository.findAllByIncident_IdOrderByAgreedAtDesc(12L))
+                .thenReturn(consents);
+
+        assertEquals(consents, customerIncidentService.findCustomerConsents(7L, 12L));
+        verify(applicationConsentRepository).findAllByIncident_IdOrderByAgreedAtDesc(12L);
     }
 
     @Test
