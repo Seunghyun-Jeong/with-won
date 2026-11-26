@@ -1,61 +1,91 @@
 package com.withwon.customer.incident.controller;
 
 import com.withwon.auth.AuthSessionService;
+import com.withwon.customer.evidence.service.CustomerEvidenceAccessService;
+import com.withwon.customer.evidence.service.CustomerEvidenceUploadService;
 import com.withwon.customer.incident.service.CustomerIncidentDraftService;
 import com.withwon.customer.incident.service.CustomerIncidentDraftUpdateService;
 import com.withwon.customer.incident.service.CustomerSupplementResponseService;
+import com.withwon.domain.customer.Customer;
 import com.withwon.domain.evidence.EvidenceQueryService;
 import com.withwon.domain.incident.CustomerIncidentService;
+import com.withwon.domain.incident.Incident;
 import com.withwon.domain.supplement.SupplementResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 
-import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class CustomerIncidentControllerTest {
 
-    private CustomerSupplementResponseService supplementResponseService;
+    private CustomerIncidentService incidentService;
+    private EvidenceQueryService evidenceQueryService;
     private CustomerIncidentController controller;
     private Authentication authentication;
 
     @BeforeEach
     void setUp() {
-        supplementResponseService = mock(CustomerSupplementResponseService.class);
+        incidentService = mock(CustomerIncidentService.class);
+        evidenceQueryService = mock(EvidenceQueryService.class);
         controller = new CustomerIncidentController(
-                mock(CustomerIncidentService.class),
-                mock(EvidenceQueryService.class),
+                incidentService,
+                evidenceQueryService,
                 mock(CustomerIncidentDraftService.class),
                 mock(CustomerIncidentDraftUpdateService.class),
-                supplementResponseService);
+                mock(CustomerSupplementResponseService.class));
         authentication = mock(Authentication.class);
         when(authentication.getPrincipal())
                 .thenReturn(new AuthSessionService.SessionPrincipal(7L, "CUSTOMER"));
     }
 
     @Test
-    void submitsSupplementResponseWithCustomerPrincipalAndIdempotencyKey() {
-        SupplementResponse response = mock(SupplementResponse.class);
-        when(response.getId()).thenReturn(301L);
-        when(response.getSupplementRequestId()).thenReturn(55L);
-        when(response.getSubmittedAt()).thenReturn(LocalDateTime.parse("2026-11-26T15:30:00"));
-        SupplementResponseRequest request = new SupplementResponseRequest(
-                "자료를 제출합니다.", java.util.List.of(101L), java.util.List.of(201L));
-        when(supplementResponseService.submit(7L, 10L, 55L, request, "key-1"))
-                .thenReturn(response);
+    void returnsCustomerIncidentPageWithValidatedParameters() {
+        when(incidentService.findCustomerIncidents(7L, "SUBMITTED",
+                PageRequest.of(1, 20, org.springframework.data.domain.Sort.by(
+                        org.springframework.data.domain.Sort.Direction.DESC, "createdAt"))))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(1, 20), 21));
 
-        var result = controller.submitSupplementResponse(authentication, 10L, 55L, "key-1", request);
+        var result = controller.list(authentication, "SUBMITTED", 1, 20);
 
-        assertEquals(HttpStatus.CREATED, result.getStatusCode());
-        assertEquals(301L, result.getBody().supplementResponseId());
-        assertEquals(55L, result.getBody().supplementRequestId());
-        assertEquals("SUBMITTED", result.getBody().status());
-        verify(supplementResponseService).submit(7L, 10L, 55L, request, "key-1");
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertEquals(1, result.getBody().page());
+        assertEquals(20, result.getBody().size());
+    }
+
+    @Test
+    void rejectsIncidentListPageSizeOverMaximum() {
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.list(authentication, null, 0, 101));
+    }
+
+    @Test
+    void returnsOnlyCustomerOwnedIncidentDetail() {
+        Incident incident = mock(Incident.class);
+        Customer customer = mock(Customer.class);
+        when(incident.getId()).thenReturn(10L);
+        when(incident.getCustomer()).thenReturn(customer);
+        when(incidentService.findCustomerIncident(7L, 10L)).thenReturn(Optional.of(incident));
+        when(incidentService.findCustomerApplications(7L, 10L)).thenReturn(List.of());
+        when(incidentService.findCustomerConsents(7L, 10L)).thenReturn(List.of());
+        when(incidentService.findCustomerSupplementRequests(7L, 10L)).thenReturn(List.of());
+        when(incidentService.findCustomerAmendmentRequests(7L, 10L)).thenReturn(List.of());
+        when(incidentService.findCustomerRefundResults(7L, 10L)).thenReturn(List.of());
+        when(evidenceQueryService.findIncidentEvidenceFiles(7L, 10L)).thenReturn(List.of());
+
+        var result = controller.detail(authentication, 10L);
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        verify(incidentService).findCustomerIncident(7L, 10L);
     }
 }
