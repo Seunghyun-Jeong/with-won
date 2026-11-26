@@ -31,5 +31,19 @@ dependencies {
 	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		excludeTags 'clova'
+	}
+}
+
+// 진짜 CLOVA를 부르는 시험(@Tag("clova")). 키가 .env에 늘 있으므로 ./gradlew test에서는 빼고, 돈과 시간이 드는 호출은 이걸로만 한다.
+tasks.register('clovaTest', Test) {
+	description = '진짜 CLOVA(OCR, Speech)로 김우리 서류와 녹음을 읽는다. backend/.env에 키가 있어야 한다. 하나만: --tests \'*KimWooriSpeechRun\''
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform {
+		includeTags 'clova'
+	}
+	outputs.upToDateWhen { false }
 }
