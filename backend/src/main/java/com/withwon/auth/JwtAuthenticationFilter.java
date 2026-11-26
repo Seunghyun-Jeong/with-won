@@ -17,9 +17,12 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final AuthSessionService authSessionService;
+    private final AuthErrorResponseWriter responseWriter;
 
-    public JwtAuthenticationFilter(AuthSessionService authSessionService) {
+    public JwtAuthenticationFilter(AuthSessionService authSessionService,
+                                   AuthErrorResponseWriter responseWriter) {
         this.authSessionService = authSessionService;
+        this.responseWriter = responseWriter;
     }
 
     @Override
@@ -37,7 +40,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         List.of(new SimpleGrantedAuthority("ROLE_" + principal.role())));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (InvalidTokenException exception) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, exception.getMessage());
+                responseWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED,
+                        "INVALID_ACCESS_TOKEN", exception.getMessage());
                 return;
             }
         }

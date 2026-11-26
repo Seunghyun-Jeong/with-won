@@ -16,11 +16,16 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                            JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+                                            JwtAuthenticationFilter jwtAuthenticationFilter,
+                                            JwtAuthenticationEntryPoint authenticationEntryPoint,
+                                            JwtAccessDeniedHandler accessDeniedHandler) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/customer/login", "/api/v1/auth/employee/login").permitAll()
                         .anyRequest().authenticated())
