@@ -80,4 +80,8 @@ public class Notification {
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
+
+    public void markRead(LocalDateTime readAt) {
+        this.readAt = readAt;
+    }
 }

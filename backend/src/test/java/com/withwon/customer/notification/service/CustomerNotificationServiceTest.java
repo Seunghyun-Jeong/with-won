@@ -38,4 +38,16 @@ class CustomerNotificationServiceTest {
         assertThrows(IllegalArgumentException.class,
                 () -> service.findCustomerNotifications(null));
     }
+
+    @Test
+    void marksOnlyCustomerOwnedNotificationAsRead() {
+        Notification notification = mock(Notification.class);
+        when(notification.getReadAt()).thenReturn(null);
+        when(notificationRepository.findByIdAndCustomerId(3L, 7L))
+                .thenReturn(java.util.Optional.of(notification));
+
+        service.markRead(7L, 3L);
+
+        verify(notification).markRead(org.mockito.ArgumentMatchers.any());
+    }
 }

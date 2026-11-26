@@ -7,6 +7,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -31,5 +33,15 @@ public class CustomerNotificationController {
                 .map(CustomerNotificationResponse::from)
                 .toList();
         return ResponseEntity.ok(notifications);
+    }
+
+    @PatchMapping("/{notificationId}/read")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<Void> markRead(Authentication authentication,
+                                         @PathVariable Long notificationId) {
+        AuthSessionService.SessionPrincipal principal =
+                (AuthSessionService.SessionPrincipal) authentication.getPrincipal();
+        notificationService.markRead(principal.userId(), notificationId);
+        return ResponseEntity.noContent().build();
     }
 }
