@@ -3,7 +3,7 @@ package com.withwon.integration.ai.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.withwon.integration.ai.dto.EvidenceStatus;
-import com.withwon.integration.ai.dto.SummaryItem;
+import com.withwon.integration.ai.dto.FindingText;
 import com.withwon.integration.ai.dto.SummaryResult;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
@@ -41,7 +41,7 @@ class SummaryKimWooriTest {
 
         assertThat(llm.inputs.getFirst()).doesNotContain("김우리", "박민수", "이정호", "482901", "110-472");
         assertThat(result.sentences()).allMatch(s -> s.status() == EvidenceStatus.VERIFIED);
-        assertThat(result.sentences()).extracting(SummaryItem::displayText).containsExactly(
+        assertThat(result.sentences()).extracting(FindingText::displayText).containsExactly(
                 "김우리가 박민수에게 300만원, 이정호에게 950만원을 보냈다", "경찰 확인원의 피해액은 1,250만원이다");
         assertThat(result.checks()).singleElement().satisfies(c -> {
             assertThat(c.status()).isEqualTo(EvidenceStatus.NEEDS_CHECK);

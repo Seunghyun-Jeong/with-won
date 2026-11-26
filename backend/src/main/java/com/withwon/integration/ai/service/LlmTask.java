@@ -4,6 +4,8 @@ import com.withwon.integration.ai.client.LlmClient;
 import com.withwon.integration.ai.client.LlmRefusedException;
 import com.withwon.integration.ai.dto.Evidence;
 import com.withwon.integration.ai.dto.EvidenceFragment;
+import com.withwon.integration.ai.dto.EvidenceStatus;
+import com.withwon.integration.ai.dto.FindingText;
 import com.withwon.integration.ai.dto.LlmCall;
 import com.withwon.integration.ai.dto.LlmReply;
 import com.withwon.integration.ai.dto.MaskLabel;
@@ -18,7 +20,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * 가린 근거 조각으로 LLM 작업 하나를 부르는 공용 흐름이다. 타임라인, 요약이 같이 쓰고 작업마다 지시문, 답 모양, 모양 검사만 다르다.
+ * 가린 근거 조각으로 LLM 작업 하나를 부르는 공용 흐름이다. 타임라인, 요약, 태깅이 같이 쓰고 작업마다 지시문, 답 모양, 모양 검사만 다르다.
  *
  * <p>입력은 서류별로 묶은 줄 글이다. 녹음은 발화가 수백 개라 조각마다 JSON 객체로 보내면 같은 키가 반복돼 토큰이 몇 배로 는다.
  * 조각 ID는 fragment.id 그대로 "#숫자"로 붙여 이름표의 대괄호와 헷갈리지 않게 했다. 가림에 실패한 조각(maskedText null)은 보내지 않는다.
@@ -64,6 +66,19 @@ final class LlmTask {
                     .map(ev -> verifier.verify(ev.path("fragmentId").longValue(), ev.path("quote").stringValue()))
                     .toList();
         }
+
+        /**
+         * 답 항목 하나의 글 칸(textField)과 근거를 대조해 finding 한 건으로 만든다. 요약과 태깅이 같이 쓴다.
+         * 잇지 못한 이름표나 근거에 없는 금액이 있으면 근거가 모두 맞아도 확인 필요다.
+         */
+        FindingText check(JsonNode item, String textField) {
+            String text = item.path(textField).stringValue();
+            List<Evidence> evidence = evidence(item);
+            List<String> unknown = linker.unknown(text);
+            List<String> amounts = verifier.unverifiedAmounts(text, evidence);
+            EvidenceStatus status = EvidenceVerifier.status(evidence, !unknown.isEmpty() || !amounts.isEmpty());
+            return new FindingText(text, linker.display(text), status, evidence, unknown, amounts);
+        }
     }
 
     private final LlmClient llm;
@@ -83,11 +98,16 @@ final class LlmTask {
     }
 
     Run run(List<EvidenceFragment> fragments, List<MaskLabel> labels) {
+        return run("", fragments, labels);
+    }
+
+    /** preface는 서류 앞에 붙는 작업 입력이다(태깅의 점검 항목 목록처럼 호출마다 다를 수 있어 지시문이 아니라 호출 기록에 남아야 하는 것). */
+    Run run(String preface, List<EvidenceFragment> fragments, List<MaskLabel> labels) {
         List<EvidenceFragment> sent = fragments.stream().filter(f -> f.maskedText() != null).toList();
         Map<Long, String> texts = sent.stream().collect(Collectors.toMap(EvidenceFragment::id, EvidenceFragment::maskedText));
         EvidenceVerifier verifier = new EvidenceVerifier(texts);
         LabelLinker linker = new LabelLinker(labels, texts.values());
-        String input = input(sent);
+        String input = preface + input(sent);
         List<LlmCall> calls = new ArrayList<>();
         String user = input;
         List<String> errors = List.of();
