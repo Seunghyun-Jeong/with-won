@@ -1,7 +1,6 @@
 package com.withwon.customer.evidence.controller;
 
 import com.withwon.auth.AuthSessionService;
-import com.withwon.customer.incident.controller.CustomerIncidentEvidenceResponse;
 import com.withwon.customer.evidence.service.CustomerEvidenceUploadService;
 import com.withwon.customer.evidence.service.CustomerEvidenceAccessService;
 import com.withwon.domain.evidence.EvidenceQueryService;
@@ -43,14 +42,20 @@ public class CustomerEvidenceController {
 
     @GetMapping
     @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<List<CustomerIncidentEvidenceResponse>> list(
+    public ResponseEntity<List<CustomerEvidenceListResponse>> list(
             Authentication authentication,
             @PathVariable Long incidentId) {
         AuthSessionService.SessionPrincipal principal =
                 (AuthSessionService.SessionPrincipal) authentication.getPrincipal();
         var evidences = queryService.findIncidentEvidenceFiles(principal.userId(), incidentId)
                 .stream()
-                .map(CustomerIncidentEvidenceResponse::from)
+                .map(evidenceFile -> CustomerEvidenceListResponse.from(
+                        incidentId,
+                        evidenceFile,
+                        queryService.findEvidenceVersions(principal.userId(), evidenceFile.getId())
+                                .stream()
+                                .findFirst()
+                                .orElse(null)))
                 .toList();
         return ResponseEntity.ok(evidences);
     }
