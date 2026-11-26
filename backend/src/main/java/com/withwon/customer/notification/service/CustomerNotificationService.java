@@ -40,4 +40,14 @@ public class CustomerNotificationService {
             notification.markRead(LocalDateTime.now());
         }
     }
+
+    @Transactional
+    public void markAllRead(Long customerId) {
+        if (customerId == null) {
+            throw new IllegalArgumentException("customerId must not be null.");
+        }
+        LocalDateTime readAt = LocalDateTime.now();
+        notificationRepository.findAllByCustomerIdAndReadAtIsNull(customerId)
+                .forEach(notification -> notification.markRead(readAt));
+    }
 }

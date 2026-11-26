@@ -50,4 +50,24 @@ class CustomerNotificationServiceTest {
 
         verify(notification).markRead(org.mockito.ArgumentMatchers.any());
     }
+
+    @Test
+    void marksAllUnreadCustomerNotificationsAsRead() {
+        Notification first = mock(Notification.class);
+        Notification second = mock(Notification.class);
+        when(notificationRepository.findAllByCustomerIdAndReadAtIsNull(7L))
+                .thenReturn(List.of(first, second));
+
+        service.markAllRead(7L);
+
+        verify(notificationRepository).findAllByCustomerIdAndReadAtIsNull(7L);
+        verify(first).markRead(org.mockito.ArgumentMatchers.any());
+        verify(second).markRead(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void rejectsMissingCustomerIdWhenMarkingAllRead() {
+        assertThrows(IllegalArgumentException.class,
+                () -> service.markAllRead(null));
+    }
 }

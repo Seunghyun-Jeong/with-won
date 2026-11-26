@@ -45,7 +45,7 @@ public class CustomerIncidentService {
 
     public List<Incident> findCustomerIncidents(Long customerId) {
         requireCustomerId(customerId);
-        return incidentRepository.findAllByCustomer_IdOrderByCreatedAtDesc(customerId);
+        return incidentRepository.findAllByCustomer_IdOrderByCreatedAtDescIdDesc(customerId);
     }
 
     public Optional<Incident> findCustomerIncident(Long customerId, Long incidentId) {
@@ -117,9 +117,10 @@ public class CustomerIncidentService {
             throw new IllegalArgumentException("pageable must not be null.");
         }
         if (status == null || status.isBlank()) {
-            return incidentRepository.findAllByCustomer_Id(customerId, pageable);
+            return incidentRepository.findAllByCustomer_IdOrderByCreatedAtDescIdDesc(customerId, pageable);
         }
-        return incidentRepository.findAllByCustomer_IdAndStatus(customerId, status, pageable);
+        return incidentRepository.findAllByCustomer_IdAndStatusOrderByCreatedAtDescIdDesc(
+                customerId, status, pageable);
     }
 
     private void requireCustomerId(Long customerId) {

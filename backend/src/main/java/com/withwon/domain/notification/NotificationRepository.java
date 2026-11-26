@@ -8,5 +8,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     List<Notification> findAllByCustomerIdOrderByCreatedAtDesc(Long customerId);
 
+    List<Notification> findAllByCustomerIdAndReadAtIsNull(Long customerId);
+
     java.util.Optional<Notification> findByIdAndCustomerId(Long id, Long customerId);
 }

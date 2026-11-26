@@ -44,4 +44,13 @@ public class CustomerNotificationController {
         notificationService.markRead(principal.userId(), notificationId);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/read-all")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<Void> markAllRead(Authentication authentication) {
+        AuthSessionService.SessionPrincipal principal =
+                (AuthSessionService.SessionPrincipal) authentication.getPrincipal();
+        notificationService.markAllRead(principal.userId());
+        return ResponseEntity.noContent().build();
+    }
 }

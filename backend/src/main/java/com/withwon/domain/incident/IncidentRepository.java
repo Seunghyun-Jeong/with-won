@@ -9,11 +9,12 @@ import java.util.Optional;
 
 public interface IncidentRepository extends JpaRepository<Incident, Long> {
 
-    List<Incident> findAllByCustomer_IdOrderByCreatedAtDesc(Long customerId);
+    List<Incident> findAllByCustomer_IdOrderByCreatedAtDescIdDesc(Long customerId);
 
-    Page<Incident> findAllByCustomer_Id(Long customerId, Pageable pageable);
+    Page<Incident> findAllByCustomer_IdOrderByCreatedAtDescIdDesc(Long customerId, Pageable pageable);
 
-    Page<Incident> findAllByCustomer_IdAndStatus(Long customerId, String status, Pageable pageable);
+    Page<Incident> findAllByCustomer_IdAndStatusOrderByCreatedAtDescIdDesc(
+            Long customerId, String status, Pageable pageable);
 
     Optional<Incident> findByIdAndCustomer_Id(Long id, Long customerId);
 
