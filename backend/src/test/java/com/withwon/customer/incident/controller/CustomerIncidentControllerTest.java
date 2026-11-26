@@ -6,6 +6,7 @@ import com.withwon.customer.evidence.service.CustomerEvidenceUploadService;
 import com.withwon.customer.incident.service.CustomerIncidentDraftService;
 import com.withwon.customer.incident.service.CustomerIncidentDraftUpdateService;
 import com.withwon.customer.incident.service.CustomerSupplementResponseService;
+import com.withwon.customer.transaction.service.CustomerTransactionService;
 import com.withwon.domain.customer.Customer;
 import com.withwon.domain.evidence.EvidenceQueryService;
 import com.withwon.domain.incident.CustomerIncidentService;
@@ -43,7 +44,8 @@ class CustomerIncidentControllerTest {
                 evidenceQueryService,
                 mock(CustomerIncidentDraftService.class),
                 mock(CustomerIncidentDraftUpdateService.class),
-                mock(CustomerSupplementResponseService.class));
+                mock(CustomerSupplementResponseService.class),
+                mock(CustomerTransactionService.class));
         authentication = mock(Authentication.class);
         when(authentication.getPrincipal())
                 .thenReturn(new AuthSessionService.SessionPrincipal(7L, "CUSTOMER"));

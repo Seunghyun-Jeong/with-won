@@ -5,6 +5,9 @@ import com.withwon.domain.incident.CustomerIncidentService;
 import com.withwon.domain.evidence.EvidenceQueryService;
 import com.withwon.customer.incident.service.CustomerIncidentDraftService;
 import com.withwon.customer.incident.service.CustomerIncidentDraftUpdateService;
+import com.withwon.customer.transaction.controller.CustomerTransactionPageResponse;
+import com.withwon.customer.transaction.controller.CustomerTransactionResponse;
+import com.withwon.customer.transaction.service.CustomerTransactionService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestHeader;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/v1/customer/incidents")
@@ -29,17 +33,41 @@ public class CustomerIncidentController {
     private final CustomerIncidentDraftService draftService;
     private final CustomerIncidentDraftUpdateService draftUpdateService;
     private final com.withwon.customer.incident.service.CustomerSupplementResponseService supplementResponseService;
+    private final CustomerTransactionService transactionService;
 
     public CustomerIncidentController(CustomerIncidentService customerIncidentService,
                                       EvidenceQueryService evidenceQueryService,
                                       CustomerIncidentDraftService draftService,
                                       CustomerIncidentDraftUpdateService draftUpdateService,
-                                      com.withwon.customer.incident.service.CustomerSupplementResponseService supplementResponseService) {
+                                      com.withwon.customer.incident.service.CustomerSupplementResponseService supplementResponseService,
+                                      CustomerTransactionService transactionService) {
         this.customerIncidentService = customerIncidentService;
         this.evidenceQueryService = evidenceQueryService;
         this.draftService = draftService;
         this.draftUpdateService = draftUpdateService;
         this.supplementResponseService = supplementResponseService;
+        this.transactionService = transactionService;
+    }
+
+    @GetMapping("/{incidentId}/available-transactions")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<CustomerTransactionPageResponse> availableTransactions(
+            Authentication authentication,
+            @PathVariable Long incidentId,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
+            @RequestParam(required = false) Long accountId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
+            throw new IllegalArgumentException("page must be non-negative and size must be between 1 and 100.");
+        }
+        AuthSessionService.SessionPrincipal principal =
+                (AuthSessionService.SessionPrincipal) authentication.getPrincipal();
+        var transactions = transactionService.findAvailableTransactions(
+                principal.userId(), incidentId, startDate, endDate, accountId, page, size)
+                .map(CustomerTransactionResponse::from);
+        return ResponseEntity.ok(CustomerTransactionPageResponse.from(transactions));
     }
 
     @GetMapping
