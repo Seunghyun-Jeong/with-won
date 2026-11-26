@@ -16,27 +16,30 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 @RestController
 @RequestMapping("/api/v1/customer/incidents")
 public class CustomerIncidentController {
 
-    private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAX_PAGE_SIZE = 100;
 
     private final CustomerIncidentService customerIncidentService;
     private final EvidenceQueryService evidenceQueryService;
     private final CustomerIncidentDraftService draftService;
     private final CustomerIncidentDraftUpdateService draftUpdateService;
+    private final com.withwon.customer.incident.service.CustomerSupplementResponseService supplementResponseService;
 
     public CustomerIncidentController(CustomerIncidentService customerIncidentService,
                                       EvidenceQueryService evidenceQueryService,
                                       CustomerIncidentDraftService draftService,
-                                      CustomerIncidentDraftUpdateService draftUpdateService) {
+                                      CustomerIncidentDraftUpdateService draftUpdateService,
+                                      com.withwon.customer.incident.service.CustomerSupplementResponseService supplementResponseService) {
         this.customerIncidentService = customerIncidentService;
         this.evidenceQueryService = evidenceQueryService;
         this.draftService = draftService;
         this.draftUpdateService = draftUpdateService;
+        this.supplementResponseService = supplementResponseService;
     }
 
     @GetMapping
@@ -124,5 +127,22 @@ public class CustomerIncidentController {
         var updated = draftUpdateService.update(principal.userId(), incidentId, request);
         return ResponseEntity.ok(UpdateIncidentDraftResponse.from(
                 updated.incident(), updated.applications(), updated.savedAt()));
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping(
+            "/{incidentId}/supplement-requests/{supplementRequestId}/responses")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<SupplementResponseResult> submitSupplementResponse(
+            Authentication authentication,
+            @PathVariable Long incidentId,
+            @PathVariable Long supplementRequestId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @org.springframework.web.bind.annotation.RequestBody SupplementResponseRequest request) {
+        AuthSessionService.SessionPrincipal principal =
+                (AuthSessionService.SessionPrincipal) authentication.getPrincipal();
+        var response = supplementResponseService.submit(
+                principal.userId(), incidentId, supplementRequestId, request, idempotencyKey);
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .body(SupplementResponseResult.from(response));
     }
 }
