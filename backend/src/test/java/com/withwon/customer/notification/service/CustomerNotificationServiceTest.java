@@ -6,6 +6,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -37,6 +39,17 @@ class CustomerNotificationServiceTest {
     void rejectsMissingCustomerId() {
         assertThrows(IllegalArgumentException.class,
                 () -> service.findCustomerNotifications(null));
+    }
+
+    @Test
+    void findsPagedNotificationsForCustomer() {
+        PageRequest pageable = PageRequest.of(1, 20);
+        when(notificationRepository.findAllByCustomerIdOrderByCreatedAtDescIdDesc(7L, pageable))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 21));
+
+        service.findCustomerNotifications(7L, pageable);
+
+        verify(notificationRepository).findAllByCustomerIdOrderByCreatedAtDescIdDesc(7L, pageable);
     }
 
     @Test

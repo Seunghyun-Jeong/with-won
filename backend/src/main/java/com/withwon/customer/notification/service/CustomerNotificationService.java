@@ -5,6 +5,8 @@ import com.withwon.domain.notification.NotificationRepository;
 import com.withwon.domain.notification.NotificationNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.time.LocalDateTime;
@@ -24,6 +26,16 @@ public class CustomerNotificationService {
             throw new IllegalArgumentException("customerId must not be null.");
         }
         return notificationRepository.findAllByCustomerIdOrderByCreatedAtDesc(customerId);
+    }
+
+    public Page<Notification> findCustomerNotifications(Long customerId, Pageable pageable) {
+        if (customerId == null) {
+            throw new IllegalArgumentException("customerId must not be null.");
+        }
+        if (pageable == null) {
+            throw new IllegalArgumentException("pageable must not be null.");
+        }
+        return notificationRepository.findAllByCustomerIdOrderByCreatedAtDescIdDesc(customerId, pageable);
     }
 
     @Transactional
