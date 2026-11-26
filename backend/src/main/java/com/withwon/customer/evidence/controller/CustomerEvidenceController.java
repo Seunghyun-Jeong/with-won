@@ -1,8 +1,10 @@
 package com.withwon.customer.evidence.controller;
 
 import com.withwon.auth.AuthSessionService;
+import com.withwon.customer.incident.controller.CustomerIncidentEvidenceResponse;
 import com.withwon.customer.evidence.service.CustomerEvidenceUploadService;
 import com.withwon.customer.evidence.service.CustomerEvidenceAccessService;
+import com.withwon.domain.evidence.EvidenceQueryService;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/customer/incidents/{incidentId}/evidences")
@@ -28,11 +31,28 @@ public class CustomerEvidenceController {
 
     private final CustomerEvidenceUploadService uploadService;
     private final CustomerEvidenceAccessService accessService;
+    private final EvidenceQueryService queryService;
 
     public CustomerEvidenceController(CustomerEvidenceUploadService uploadService,
-                                      CustomerEvidenceAccessService accessService) {
+                                      CustomerEvidenceAccessService accessService,
+                                      EvidenceQueryService queryService) {
         this.uploadService = uploadService;
         this.accessService = accessService;
+        this.queryService = queryService;
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<List<CustomerIncidentEvidenceResponse>> list(
+            Authentication authentication,
+            @PathVariable Long incidentId) {
+        AuthSessionService.SessionPrincipal principal =
+                (AuthSessionService.SessionPrincipal) authentication.getPrincipal();
+        var evidences = queryService.findIncidentEvidenceFiles(principal.userId(), incidentId)
+                .stream()
+                .map(CustomerIncidentEvidenceResponse::from)
+                .toList();
+        return ResponseEntity.ok(evidences);
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -50,6 +70,25 @@ public class CustomerEvidenceController {
                 refundTarget, compensationTarget, file);
         return ResponseEntity.status(201)
                 .body(EvidenceUploadResponse.from(uploaded.evidenceFile(), uploaded.evidenceVersion()));
+    }
+
+    @PostMapping(path = "/batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<List<EvidenceUploadResponse>> uploadBatch(
+            Authentication authentication,
+            @PathVariable Long incidentId,
+            @RequestParam("documentType") String documentType,
+            @RequestParam(name = "refundTarget", defaultValue = "false") boolean refundTarget,
+            @RequestParam(name = "compensationTarget", defaultValue = "false") boolean compensationTarget,
+            @RequestPart("files") List<MultipartFile> files) {
+        AuthSessionService.SessionPrincipal principal =
+                (AuthSessionService.SessionPrincipal) authentication.getPrincipal();
+        var uploaded = uploadService.uploadBatch(principal.userId(), incidentId, documentType,
+                refundTarget, compensationTarget, files);
+        return ResponseEntity.status(201)
+                .body(uploaded.stream()
+                        .map(item -> EvidenceUploadResponse.from(item.evidenceFile(), item.evidenceVersion()))
+                        .toList());
     }
 
     @GetMapping("/{evidenceFileId}/content")

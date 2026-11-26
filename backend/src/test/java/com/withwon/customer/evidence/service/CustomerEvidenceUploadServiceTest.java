@@ -10,8 +10,10 @@ import com.withwon.domain.incident.IncidentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Optional;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -93,5 +95,28 @@ class CustomerEvidenceUploadServiceTest {
 
         assertThrows(IncidentNotFoundException.class,
                 () -> service.upload(7L, 11L, "ID_CARD", false, false, file));
+    }
+
+    @Test
+    void uploadsAnyNumberOfEvidenceFilesAsOneBatch() {
+        Incident incident = mock(Incident.class);
+        when(incident.isDraft()).thenReturn(true);
+        when(incidentRepository.findByIdAndCustomer_Id(11L, 7L)).thenReturn(Optional.of(incident));
+        when(evidenceStorage.store(any())).thenReturn(
+                new EvidenceStorage.StoredEvidence("evidence-key", "hash", 1L));
+        when(evidenceFileRepository.save(any(EvidenceFile.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(evidenceVersionRepository.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<MultipartFile> files = List.of(
+                new MockMultipartFile("files", "transcript-1.txt", "text/plain", new byte[]{1}),
+                new MockMultipartFile("files", "transcript-2.txt", "text/plain", new byte[]{2}));
+
+        var uploaded = service.uploadBatch(7L, 11L, "TRANSCRIPT", false, false, files);
+
+        assertEquals(2, uploaded.size());
+        verify(evidenceStorage).store(files.get(0));
+        verify(evidenceStorage).store(files.get(1));
     }
 }

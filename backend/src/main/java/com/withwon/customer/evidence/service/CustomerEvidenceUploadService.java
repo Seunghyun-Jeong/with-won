@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Locale;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -62,6 +63,20 @@ public class CustomerEvidenceUploadService {
                 file.getContentType(), stored.sizeBytes(), stored.sha256(),
                 "UPLOADED", "PENDING"));
         return new UploadedEvidence(evidenceFile, evidenceVersion);
+    }
+
+    @Transactional
+    public List<UploadedEvidence> uploadBatch(Long customerId, Long incidentId, String documentType,
+                                              boolean refundTarget, boolean compensationTarget,
+                                              List<MultipartFile> files) {
+        if (files == null || files.isEmpty()) {
+            throw new IllegalArgumentException("files must not be empty.");
+        }
+
+        return files.stream()
+                .map(file -> upload(customerId, incidentId, documentType,
+                        refundTarget, compensationTarget, file))
+                .toList();
     }
 
     private void validate(String documentType, MultipartFile file) {
