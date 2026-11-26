@@ -1,11 +1,8 @@
 package com.withwon.integration.ai;
 
-import static com.withwon.integration.ai.dto.CheckItem.Kind.EXCLUSION;
-import static com.withwon.integration.ai.dto.CheckItem.Kind.FAULT;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.withwon.integration.ai.dto.CaseKnown;
-import com.withwon.integration.ai.dto.CheckItem;
 import com.withwon.integration.ai.dto.CaseKnown.Payee;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -43,29 +40,6 @@ public final class TestFiles {
             List.of("1002-384-729105"),
             List.of(new Payee("482901-01-336417", "박민수"), new Payee("110-472-836150", "이정호")),
             List.of("우리은행 왕십리지점"));
-
-    // 태깅 대상 점검 항목. 시트 "자율배상 점검 항목" 탭(주인)에서 판정이 서류나 기록+서류인 18개를 순서대로 옮겼다.
-    // check_item 시드가 생기면 시드에서 읽는다. 태깅과 진짜 Claude 시험이 같이 쓴다.
-    public static final List<CheckItem> TAG_ITEMS = List.of(
-            new CheckItem("FT_ID_LOST_UNREPORTED", FAULT, "신분증을 잃어버리고 바로 분실신고를 하지 않음"),
-            new CheckItem("FT_ID_COPY_STORED", FAULT, "신분증 사본을 휴대폰, PC, 클라우드에 저장"),
-            new CheckItem("FT_PW_MEMO", FAULT, "계좌번호와 계좌 비밀번호를 저장(메모)"),
-            new CheckItem("FT_NO_LOCK", FAULT, "휴대폰 잠금 없음"),
-            new CheckItem("EX_FAMILY", EXCLUSION, "가족이나 지인이 한 거래"),
-            new CheckItem("EX_GOODS", EXCLUSION, "물건 거래를 가장한 사기(물품대금, 중고거래, 쇼핑몰)"),
-            new CheckItem("EX_SERVICE", EXCLUSION, "용역을 가장한 사기(중개 수수료, 게임아이템, 취업)"),
-            new CheckItem("EX_ILLEGAL", EXCLUSION, "불법, 비정상 거래(몸캠, 로맨스 스캠, 조건만남)"),
-            new CheckItem("FT_SMISHING_LINK", FAULT, "스미싱 문자나 카톡의 링크를 누름"),
-            new CheckItem("FT_MALICIOUS_APP", FAULT, "출처 모를 앱(원격조정 앱 포함)을 설치, 실행"),
-            new CheckItem("EX_MEDIUM_TRANSFER", EXCLUSION, "접근매체를 양도, 양수하거나 질권 설정(전자금융거래법 제6조 제3항)"),
-            new CheckItem("FT_GAVE_ID", FAULT, "신분증을 줌(사본 사진이나 파일 전송 포함)"),
-            new CheckItem("FT_GAVE_PERSONAL", FAULT, "개인정보(이름, 주민번호, 휴대폰번호)를 줌"),
-            new CheckItem("FT_GAVE_DEVICE", FAULT, "휴대폰 등 기기를 줌(빌려준 경우 포함)"),
-            new CheckItem("FT_GAVE_ACCOUNT_PW", FAULT, "계좌번호와 계좌 비밀번호를 줌"),
-            new CheckItem("FT_GAVE_SECURITY", FAULT, "보안매체(OTP, 보안카드, 인증서)나 그 비밀번호를 줌"),
-            new CheckItem("FT_GAVE_OTHER", FAULT, "그 밖의 전자금융 정보를 줌"),
-            new CheckItem("EX_SELF_ORDER", EXCLUSION,
-                    "피해자가 직접 이체를 지시함(가족 사칭, 협박, 대출사기처럼 제3자가 시킨 경우 포함)"));
 
     private TestFiles() {
     }
