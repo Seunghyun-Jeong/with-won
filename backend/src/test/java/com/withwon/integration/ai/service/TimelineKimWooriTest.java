@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.withwon.integration.ai.dto.EvidenceStatus;
 import com.withwon.integration.ai.dto.TimelineEvent;
 import com.withwon.integration.ai.dto.TimelineResult;
-import com.withwon.integration.ai.service.TimelineServiceTest.FakeLlm;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -16,16 +15,6 @@ class TimelineKimWooriTest {
 
     private final KimWooriCase kim = new KimWooriCase();
 
-    private long idOf(String document, String maskedText, int nth) {
-        return kim.fragments.stream().filter(f -> f.document().equals(document) && maskedText.equals(f.maskedText()))
-                .skip(nth).findFirst().orElseThrow(() -> new AssertionError(document + "에 없음: " + maskedText)).id();
-    }
-
-    private long idContaining(String document, String part) {
-        return kim.fragments.stream().filter(f -> f.document().equals(document) && f.maskedText() != null
-                && f.maskedText().contains(part)).findFirst().orElseThrow(() -> new AssertionError(part)).id();
-    }
-
     @Test
     void 김우리_사건을_가명처리한_글로_타임라인을_만들고_실제_값으로_잇는다() throws IOException {
         kim.add("피해구제신청서", "01_피해구제신청서_전자.pdf.txt")
@@ -33,11 +22,11 @@ class TimelineKimWooriTest {
                 .add("이체내역캡처", "06_이체내역캡처.png.txt");
 
         // 이체내역에서 박민수 행은 11.18 / 14:32 / [예금주1] / -3,000,000원 순서로 읽혔다.
-        long holder = idOf("이체내역캡처", "[예금주1]", 0);
-        long call = idContaining("피해구제신청서", "수사관이라는 사람에게서 전화를 받았습니다");
-        long smsDate = idOf("문자캡처", "2026년 11월 18일 (수)", 0);
-        long smsBody = idContaining("문자캡처", "[피해자]님 사건");
-        long smsTime = idOf("문자캡처", "오후 1:56", 0);
+        long holder = kim.idOf("이체내역캡처", "[예금주1]", 0);
+        long call = kim.idContaining("피해구제신청서", "수사관이라는 사람에게서 전화를 받았습니다");
+        long smsDate = kim.idOf("문자캡처", "2026년 11월 18일 (수)", 0);
+        long smsBody = kim.idContaining("문자캡처", "[피해자]님 사건");
+        long smsTime = kim.idOf("문자캡처", "오후 1:56", 0);
         String answer = """
                 {"events": [
                  {"what": "[피해자]가 [예금주1]에게 3,000,000원을 이체함", "dateText": "11.18", "timeText": "14:32",
@@ -69,8 +58,8 @@ class TimelineKimWooriTest {
     void 자율배상_신청서의_경위와_사고인지_일시도_가명처리해_근거로_쓴다() throws IOException {
         kim.addCompForm();
 
-        long noticed = idContaining("자율배상신청서", "최초 사고인지 일시");
-        long remote = idContaining("자율배상신청서", "제가 하지 않은 950만원");
+        long noticed = kim.idContaining("자율배상신청서", "최초 사고인지 일시");
+        long remote = kim.idContaining("자율배상신청서", "제가 하지 않은 950만원");
         String remoteText = kim.fragments.get((int) remote - 1).maskedText();
         String answer = """
                 {"events": [

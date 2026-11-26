@@ -1,0 +1,11 @@
+withwon:
+  customer:
+    application:
+      schema-version: v1
+      consent-forms:
+        - consent-type: PRIVACY
+          consent-version: v1
+          content: "개인정보 수집 및 이용 동의"
+        - consent-type: EXTERNAL_AI
+          consent-version: v1
+          content: "외부 AI 분석을 위한 정보 제공 동의"
