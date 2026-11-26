@@ -18,12 +18,14 @@ public record CustomerIncidentDetailResponse(
         LocalDateTime closedAt,
         List<CreatedApplicationResponse> applications,
         List<CustomerIncidentConsentResponse> consents,
+        List<CustomerIncidentSupplementResponse> supplementRequests,
         List<CustomerIncidentEvidenceResponse> evidenceFiles
 ) {
 
     public static CustomerIncidentDetailResponse from(Incident incident,
                                                       List<CreatedApplicationResponse> applications,
                                                       List<CustomerIncidentConsentResponse> consents,
+                                                      List<CustomerIncidentSupplementResponse> supplementRequests,
                                                       List<CustomerIncidentEvidenceResponse> evidenceFiles) {
         return new CustomerIncidentDetailResponse(
                 incident.getId(),
@@ -37,6 +39,7 @@ public record CustomerIncidentDetailResponse(
                 incident.getClosedAt(),
                 applications,
                 consents,
+                supplementRequests,
                 evidenceFiles);
     }
 }

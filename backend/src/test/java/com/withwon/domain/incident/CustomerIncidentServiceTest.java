@@ -2,6 +2,7 @@ package com.withwon.domain.incident;
 
 import com.withwon.domain.application.ApplicationRepository;
 import com.withwon.domain.application.ApplicationConsentRepository;
+import com.withwon.domain.supplement.SupplementRequestRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
@@ -21,6 +22,7 @@ class CustomerIncidentServiceTest {
     private IncidentRepository incidentRepository;
     private ApplicationRepository applicationRepository;
     private ApplicationConsentRepository applicationConsentRepository;
+    private SupplementRequestRepository supplementRequestRepository;
     private CustomerIncidentService customerIncidentService;
 
     @BeforeEach
@@ -28,8 +30,10 @@ class CustomerIncidentServiceTest {
         incidentRepository = mock(IncidentRepository.class);
         applicationRepository = mock(ApplicationRepository.class);
         applicationConsentRepository = mock(ApplicationConsentRepository.class);
+        supplementRequestRepository = mock(SupplementRequestRepository.class);
         customerIncidentService = new CustomerIncidentService(
-                incidentRepository, applicationRepository, applicationConsentRepository);
+                incidentRepository, applicationRepository, applicationConsentRepository,
+                supplementRequestRepository);
     }
 
     @Test
@@ -79,6 +83,19 @@ class CustomerIncidentServiceTest {
 
         assertEquals(consents, customerIncidentService.findCustomerConsents(7L, 12L));
         verify(applicationConsentRepository).findAllByIncident_IdOrderByAgreedAtDesc(12L);
+    }
+
+    @Test
+    void findsSupplementRequestsOnlyForCustomerOwnedIncident() {
+        Incident incident = mock(Incident.class);
+        List<com.withwon.domain.supplement.SupplementRequest> requests = List.of(
+                mock(com.withwon.domain.supplement.SupplementRequest.class));
+        when(incidentRepository.findByIdAndCustomer_Id(12L, 7L)).thenReturn(Optional.of(incident));
+        when(supplementRequestRepository.findAllByIncident_IdOrderByCreatedAtDesc(12L))
+                .thenReturn(requests);
+
+        assertEquals(requests, customerIncidentService.findCustomerSupplementRequests(7L, 12L));
+        verify(supplementRequestRepository).findAllByIncident_IdOrderByCreatedAtDesc(12L);
     }
 
     @Test
