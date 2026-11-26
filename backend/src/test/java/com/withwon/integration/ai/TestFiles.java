@@ -2,6 +2,8 @@ package com.withwon.integration.ai;
 
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import com.withwon.integration.ai.dto.CaseKnown;
+import com.withwon.integration.ai.dto.CaseKnown.Payee;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -27,6 +29,17 @@ public final class TestFiles {
 
     // 저장소에는 올리지 않는 시험 서류(.git/info/exclude). 없으면 이 서류를 쓰는 테스트는 건너뛴다.
     public static final Path KIM_WOORI = Path.of("src/test/resources/ai/samples/김우리");
+
+    // 김우리 사건에서 이미 아는 값(신분증, 신청서, 원장). 가림과 타임라인 시험이 같이 쓴다.
+    public static final CaseKnown KIM_WOORI_KNOWN = new CaseKnown(
+            List.of("900512-2123456"),
+            "김우리",
+            "010-2847-5931",
+            "kimwoori@example.com",
+            "서울특별시 성동구 왕십리로 123, 101동 1004호 (행당동, 한빛아파트)",
+            List.of("1002-384-729105"),
+            List.of(new Payee("482901-01-336417", "박민수"), new Payee("110-472-836150", "이정호")),
+            List.of("우리은행 왕십리지점"));
 
     private TestFiles() {
     }

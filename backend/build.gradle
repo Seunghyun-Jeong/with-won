@@ -19,6 +19,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.apache.pdfbox:pdfbox:3.0.8'
+	implementation 'com.anthropic:anthropic-java:3.3.0'
 	implementation 'org.flywaydb:flyway-core'
 	runtimeOnly 'org.flywaydb:flyway-mysql'
 	runtimeOnly 'com.mysql:mysql-connector-j'
@@ -33,7 +34,7 @@ dependencies {
 }
 tasks.named('test') {
 	useJUnitPlatform {
-		excludeTags 'clova'
+		excludeTags 'clova', 'llm'
 	}
 }
 
@@ -46,5 +47,18 @@ tasks.register('clovaTest', Test) {
 	useJUnitPlatform {
 		includeTags 'clova'
 	}
+	outputs.upToDateWhen { false }
+}
+
+// 진짜 LLM(Claude)을 부르는 시험(@Tag("llm")). clovaTest와 같은 이유로 ./gradlew test에서 빼고 이걸로만 돌린다.
+tasks.register('llmTest', Test) {
+	description = '진짜 Claude로 김우리 사건 타임라인을 만든다. backend/.env에 ANTHROPIC_API_KEY가 있어야 한다. 결과는 build/llm-timeline-kim-woori/'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform {
+		includeTags 'llm'
+	}
+	testLogging.showStandardStreams = true
 	outputs.upToDateWhen { false }
 }
