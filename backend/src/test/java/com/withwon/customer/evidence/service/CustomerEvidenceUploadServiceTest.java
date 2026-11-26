@@ -5,6 +5,7 @@ import com.withwon.customer.incident.controller.IncidentNotFoundException;
 import com.withwon.domain.evidence.EvidenceFile;
 import com.withwon.domain.evidence.EvidenceFileRepository;
 import com.withwon.domain.evidence.EvidenceVersionRepository;
+import com.withwon.domain.application.ApplicationConsentRepository;
 import com.withwon.domain.incident.Incident;
 import com.withwon.domain.incident.IncidentRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +30,7 @@ class CustomerEvidenceUploadServiceTest {
     private EvidenceFileRepository evidenceFileRepository;
     private EvidenceVersionRepository evidenceVersionRepository;
     private EvidenceStorage evidenceStorage;
+    private ApplicationConsentRepository consentRepository;
     private CustomerEvidenceUploadService service;
 
     @BeforeEach
@@ -37,8 +39,12 @@ class CustomerEvidenceUploadServiceTest {
         evidenceFileRepository = mock(EvidenceFileRepository.class);
         evidenceVersionRepository = mock(EvidenceVersionRepository.class);
         evidenceStorage = mock(EvidenceStorage.class);
+        consentRepository = mock(ApplicationConsentRepository.class);
+        when(consentRepository.existsByIncident_IdAndConsentType(11L, "PRIVACY")).thenReturn(true);
+        when(consentRepository.existsByIncident_IdAndConsentType(11L, "EXTERNAL_AI")).thenReturn(true);
         service = new CustomerEvidenceUploadService(
-                incidentRepository, evidenceFileRepository, evidenceVersionRepository, evidenceStorage);
+                incidentRepository, evidenceFileRepository, evidenceVersionRepository, evidenceStorage,
+                consentRepository);
     }
 
     @Test
@@ -84,6 +90,21 @@ class CustomerEvidenceUploadServiceTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> service.upload(7L, 11L, "EVIDENCE", false, false, file));
+        verify(evidenceStorage, never()).store(any());
+    }
+
+    @Test
+    void rejectsEvidenceWhenBothRequiredConsentsAreNotRecorded() {
+        Incident incident = mock(Incident.class);
+        when(incident.isDraft()).thenReturn(true);
+        when(incidentRepository.findByIdAndCustomer_Id(11L, 7L)).thenReturn(Optional.of(incident));
+        when(consentRepository.existsByIncident_IdAndConsentType(11L, "EXTERNAL_AI"))
+                .thenReturn(false);
+
+        var file = new MockMultipartFile("file", "id.jpg", "image/jpeg", new byte[]{1});
+
+        assertThrows(IllegalStateException.class,
+                () -> service.upload(7L, 11L, "ID_CARD", false, false, file));
         verify(evidenceStorage, never()).store(any());
     }
 
