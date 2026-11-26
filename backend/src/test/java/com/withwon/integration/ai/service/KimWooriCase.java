@@ -53,6 +53,18 @@ final class KimWooriCase {
         return addTexts("자율배상신청서", Stream.concat(noticed, sentences).toList());
     }
 
+    /** 서류에서 가린 글이 maskedText와 같은 nth번째 조각의 ID. 가짜 LLM 답에 실제 조각 ID를 넣을 때 쓴다. */
+    long idOf(String document, String maskedText, int nth) {
+        return fragments.stream().filter(f -> f.document().equals(document) && maskedText.equals(f.maskedText()))
+                .skip(nth).findFirst().orElseThrow(() -> new AssertionError(document + "에 없음: " + maskedText)).id();
+    }
+
+    /** 서류에서 가린 글에 part가 든 첫 조각의 ID */
+    long idContaining(String document, String part) {
+        return fragments.stream().filter(f -> f.document().equals(document) && f.maskedText() != null
+                && f.maskedText().contains(part)).findFirst().orElseThrow(() -> new AssertionError(part)).id();
+    }
+
     private KimWooriCase addTexts(String document, List<String> texts) {
         MaskResult masked = new MaskService().maskForLlm(texts.stream().map(t -> new MaskInput(null, t)).toList(),
                 KIM_WOORI_KNOWN, labels);

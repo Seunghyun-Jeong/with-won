@@ -2,21 +2,15 @@ package com.withwon.integration.ai.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.withwon.integration.ai.client.LlmClient;
-import com.withwon.integration.ai.client.LlmRefusedException;
 import com.withwon.integration.ai.dto.Evidence;
 import com.withwon.integration.ai.dto.EvidenceFragment;
 import com.withwon.integration.ai.dto.EvidenceStatus;
-import com.withwon.integration.ai.dto.LlmReply;
 import com.withwon.integration.ai.dto.MaskLabel;
 import com.withwon.integration.ai.dto.MaskLabel.Kind;
 import com.withwon.integration.ai.dto.TimelineEvent;
 import com.withwon.integration.ai.dto.TimelineResult;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -49,34 +43,6 @@ class TimelineServiceTest {
             {"what": "[피해자]가 [예금주1]에게 3,000,000원을 이체함", "dateText": "11.18", "timeText": "14:32",
              "evidence": [{"fragmentId": 4, "quote": "11.18"}, {"fragmentId": 5, "quote": "14:32"},
                           {"fragmentId": 6, "quote": "[예금주1]"}, {"fragmentId": 7, "quote": "-3,000,000원"}]}""";
-
-    /** 정해 둔 답을 차례로 돌려주고 받은 글과 스키마를 남긴다. 답이 REFUSE면 거절한다. */
-    static final class FakeLlm implements LlmClient {
-        static final String REFUSE = "REFUSE";
-        private final Deque<String> answers;
-        final List<String> inputs = new ArrayList<>();
-        final List<String> schemas = new ArrayList<>();
-
-        FakeLlm(String... answers) {
-            this.answers = new ArrayDeque<>(List.of(answers));
-        }
-
-        @Override
-        public String provider() {
-            return "FAKE";
-        }
-
-        @Override
-        public LlmReply complete(String system, String user, String jsonSchema) {
-            inputs.add(user);
-            schemas.add(jsonSchema);
-            String answer = answers.removeFirst();
-            if (answer.equals(REFUSE)) {
-                throw new LlmRefusedException("cyber");
-            }
-            return new LlmReply(answer, "fake-1");
-        }
-    }
 
     private static String answer(String... events) {
         return "{\"events\": [" + String.join(",", events) + "]}";

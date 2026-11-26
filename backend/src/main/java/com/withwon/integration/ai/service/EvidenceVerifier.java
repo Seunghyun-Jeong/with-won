@@ -2,14 +2,18 @@ package com.withwon.integration.ai.service;
 
 import com.withwon.integration.ai.dto.Evidence;
 import com.withwon.integration.ai.dto.EvidenceStatus;
+import com.withwon.integration.ai.service.AmountNormalizer.Amount;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * AI가 댄 근거를 대조하는 한 곳(직원-9). 타임라인, 요약, 과실 근거, 보고서가 같이 쓴다.
  * 기준은 이번 호출에 실제로 보낸 가린 글이다. 가림에 실패해 보내지 않은 조각과 다른 사건의 조각은 없는 ID로 본다.
  * 인용문은 공백 차이만 무시하고 포함 여부로 본다. OCR과 STT가 띄어쓰기를 들쭉날쭉하게 내고 LLM도 공백을 바꿔 옮기기 때문이다.
  * 글자를 바꾼 인용문(실제 이름, 고친 맞춤법)은 확인되지 않은 것으로 둔다.
+ * 날짜, 시각(inVerified)과 금액(unverifiedAmounts)도 확인된 근거에 적힌 것만 믿는다.
  */
 final class EvidenceVerifier {
 
@@ -33,12 +37,28 @@ final class EvidenceVerifier {
         return evidence.stream().filter(Evidence::verified).anyMatch(e -> contains(sent.get(e.fragmentId()), part));
     }
 
-    static EvidenceStatus status(List<Evidence> evidence) {
+    /**
+     * 글 속 금액 가운데 확인된 근거의 가린 글에 같은 값(원 단위)이 없는 것, 나온 순서대로 한 번씩.
+     * LLM이 더한 합계나 잘못 옮긴 금액을 잡는다. 근거마다 "300만원", "-3,000,000원"처럼 단위가 달라 AmountNormalizer로 맞춰 본다.
+     */
+    List<String> unverifiedAmounts(String text, List<Evidence> evidence) {
+        Set<Long> shown = evidence.stream().filter(Evidence::verified)
+                .flatMap(e -> AmountNormalizer.find(sent.get(e.fragmentId())).stream())
+                .map(Amount::won).collect(Collectors.toSet());
+        return AmountNormalizer.find(text).stream().filter(a -> !shown.contains(a.won()))
+                .map(Amount::text).distinct().toList();
+    }
+
+    /**
+     * 근거 대조 결과. 근거가 모두 맞아도 doubtful(잇지 못한 이름표, 근거에 없는 금액처럼 작업이 찾은 의심할 점)이면 확인 필요로 내린다.
+     * 확인된 근거가 하나도 없으면 의심할 점과 상관없이 근거 부족이다.
+     */
+    static EvidenceStatus status(List<Evidence> evidence, boolean doubtful) {
         long verified = evidence.stream().filter(Evidence::verified).count();
         if (verified == 0) {
             return EvidenceStatus.NO_EVIDENCE;
         }
-        return verified == evidence.size() ? EvidenceStatus.VERIFIED : EvidenceStatus.NEEDS_CHECK;
+        return verified == evidence.size() && !doubtful ? EvidenceStatus.VERIFIED : EvidenceStatus.NEEDS_CHECK;
     }
 
     private static boolean contains(String text, String part) {
