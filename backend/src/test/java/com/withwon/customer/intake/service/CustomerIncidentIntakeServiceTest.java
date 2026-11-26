@@ -94,6 +94,27 @@ class CustomerIncidentIntakeServiceTest {
                 "request-1"));
     }
 
+    @Test
+    void rejectsDuplicateApplicationTypes() {
+        assertThrows(IllegalArgumentException.class, () -> intakeService.create(
+                7L,
+                new CreateIncidentRequest(List.of("REFUND", "REFUND")),
+                "request-1"));
+
+        verify(incidentRepository, never()).save(any(Incident.class));
+        verify(applicationRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void rejectsBlankIdempotencyKey() {
+        assertThrows(IllegalArgumentException.class, () -> intakeService.create(
+                7L,
+                new CreateIncidentRequest(List.of("REFUND")),
+                "   "));
+
+        verify(incidentRepository, never()).findByCustomer_IdAndSubmitKey(any(), any());
+    }
+
     private String requestHash(List<String> applicationTypes) {
         try {
             byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
