@@ -89,8 +89,10 @@ public class AuthSession {
     }
 
     public boolean matches(Long userId, String role) {
-        return ("CUSTOMER".equals(role) && customer != null && customer.getId().equals(userId))
-                || ("EMPLOYEE".equals(role) && employee != null && employee.getId().equals(userId));
+        return ("CUSTOMER".equals(role) && customer != null && customer.isActive()
+                && customer.getId().equals(userId))
+                || ("EMPLOYEE".equals(role) && employee != null && employee.isActive()
+                && employee.getId().equals(userId));
     }
 
     public void touch(LocalDateTime now) {

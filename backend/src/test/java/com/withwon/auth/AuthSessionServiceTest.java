@@ -36,6 +36,7 @@ class AuthSessionServiceTest {
     void authenticatesActiveCustomerSession() {
         Customer customer = mock(Customer.class);
         when(customer.getId()).thenReturn(7L);
+        when(customer.isActive()).thenReturn(true);
         String token = jwtTokenService.issue(7L, "CUSTOMER");
         AuthSession session = AuthSession.forCustomer(
                 customer,
@@ -56,6 +57,23 @@ class AuthSessionServiceTest {
         String token = jwtTokenService.issue(7L, "CUSTOMER");
         when(authSessionRepository.findByTokenHashAndRevokedAtIsNull(sha256(token)))
                 .thenReturn(Optional.empty());
+
+        assertThrows(InvalidTokenException.class, () -> authSessionService.authenticate(token));
+    }
+
+    @Test
+    void rejectsSessionForDeactivatedCustomer() {
+        Customer customer = mock(Customer.class);
+        when(customer.getId()).thenReturn(7L);
+        when(customer.isActive()).thenReturn(false);
+        String token = jwtTokenService.issue(7L, "CUSTOMER");
+        AuthSession session = AuthSession.forCustomer(
+                customer,
+                sha256(token),
+                LocalDateTime.ofInstant(NOW, ZoneOffset.UTC),
+                LocalDateTime.ofInstant(NOW.plusSeconds(3600), ZoneOffset.UTC));
+        when(authSessionRepository.findByTokenHashAndRevokedAtIsNull(sha256(token)))
+                .thenReturn(Optional.of(session));
 
         assertThrows(InvalidTokenException.class, () -> authSessionService.authenticate(token));
     }
