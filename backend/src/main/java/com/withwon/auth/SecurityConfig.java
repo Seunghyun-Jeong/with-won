@@ -27,7 +27,13 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/customer/login", "/api/v1/auth/employee/login").permitAll()
+                        .requestMatchers(
+                                "/api/v1/auth/customer/login",
+                                "/api/v1/auth/employee/login",
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
                         .anyRequest().authenticated())
                 .build();
     }

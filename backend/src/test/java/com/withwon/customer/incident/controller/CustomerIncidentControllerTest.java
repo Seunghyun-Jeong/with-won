@@ -48,7 +48,8 @@ class CustomerIncidentControllerTest {
                 mock(CustomerIncidentDraftService.class),
                 mock(CustomerIncidentDraftUpdateService.class),
                 mock(CustomerSupplementResponseService.class),
-                transactionService);
+                transactionService,
+                mock(com.withwon.customer.incident.service.CustomerIncidentSubmitService.class));
         authentication = mock(Authentication.class);
         when(authentication.getPrincipal())
                 .thenReturn(new AuthSessionService.SessionPrincipal(7L, "CUSTOMER"));

@@ -9,4 +9,6 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     List<Application> findAllByIncident_IdOrderByIdAsc(Long incidentId);
 
     void deleteAllByIncident_Id(Long incidentId);
+
+    List<Application> findAllBySubmitKey(String submitKey);
 }

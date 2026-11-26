@@ -61,4 +61,25 @@ public class ApplicationFormVersion {
     public Integer getVersionNo() {
         return versionNo;
     }
+
+    public Application getApplication() {
+        return application;
+    }
+
+    public String getVersionType() {
+        return versionType;
+    }
+
+    public String getFormData() {
+        return formData;
+    }
+
+    public String getSchemaVersion() {
+        return schemaVersion;
+    }
+
+    public void markSubmitted(LocalDateTime submittedAt) {
+        this.versionType = "SUBMITTED";
+        this.submittedAt = submittedAt;
+    }
 }

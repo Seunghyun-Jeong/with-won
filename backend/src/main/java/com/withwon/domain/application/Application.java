@@ -88,4 +88,23 @@ public class Application {
     public Long getVersion() {
         return version;
     }
+
+    public LocalDateTime getSubmittedAt() {
+        return submittedAt;
+    }
+
+    public String getSubmitKey() {
+        return submitKey;
+    }
+
+    public String getSubmitRequestHash() {
+        return submitRequestHash;
+    }
+
+    public void submit(LocalDateTime submittedAt, String submitKey, String requestHash) {
+        this.status = "REVIEW";
+        this.submittedAt = submittedAt;
+        this.submitKey = submitKey;
+        this.submitRequestHash = requestHash;
+    }
 }

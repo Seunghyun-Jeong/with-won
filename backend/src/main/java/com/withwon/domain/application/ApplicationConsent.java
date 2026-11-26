@@ -57,6 +57,11 @@ public class ApplicationConsent {
         this.policyText = policyText;
     }
 
+    public void attach(Application application, ApplicationFormVersion formVersion) {
+        this.application = application;
+        this.formVersion = formVersion;
+    }
+
     public Long getId() {
         return id;
     }

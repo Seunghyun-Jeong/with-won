@@ -34,19 +34,35 @@ public class CustomerIncidentController {
     private final CustomerIncidentDraftUpdateService draftUpdateService;
     private final com.withwon.customer.incident.service.CustomerSupplementResponseService supplementResponseService;
     private final CustomerTransactionService transactionService;
+    private final com.withwon.customer.incident.service.CustomerIncidentSubmitService submitService;
 
     public CustomerIncidentController(CustomerIncidentService customerIncidentService,
                                       EvidenceQueryService evidenceQueryService,
                                       CustomerIncidentDraftService draftService,
                                       CustomerIncidentDraftUpdateService draftUpdateService,
                                       com.withwon.customer.incident.service.CustomerSupplementResponseService supplementResponseService,
-                                      CustomerTransactionService transactionService) {
+                                      CustomerTransactionService transactionService,
+                                      com.withwon.customer.incident.service.CustomerIncidentSubmitService submitService) {
         this.customerIncidentService = customerIncidentService;
         this.evidenceQueryService = evidenceQueryService;
         this.draftService = draftService;
         this.draftUpdateService = draftUpdateService;
         this.supplementResponseService = supplementResponseService;
         this.transactionService = transactionService;
+        this.submitService = submitService;
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/{incidentId}/submit")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<SubmitIncidentResponse> submit(
+            Authentication authentication,
+            @PathVariable Long incidentId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @org.springframework.web.bind.annotation.RequestBody SubmitIncidentRequest request) {
+        AuthSessionService.SessionPrincipal principal =
+                (AuthSessionService.SessionPrincipal) authentication.getPrincipal();
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .body(submitService.submit(principal.userId(), incidentId, request, idempotencyKey));
     }
 
     @GetMapping("/{incidentId}/available-transactions")

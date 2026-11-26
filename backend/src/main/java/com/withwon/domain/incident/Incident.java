@@ -143,4 +143,9 @@ public class Incident {
     public void updateDescription(String description) {
         this.description = description;
     }
+
+    public void submit(LocalDateTime submittedAt) {
+        this.status = "RECEIVED";
+        this.submittedAt = submittedAt;
+    }
 }
