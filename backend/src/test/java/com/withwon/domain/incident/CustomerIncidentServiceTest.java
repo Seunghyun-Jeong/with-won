@@ -3,6 +3,7 @@ package com.withwon.domain.incident;
 import com.withwon.domain.application.ApplicationRepository;
 import com.withwon.domain.application.ApplicationConsentRepository;
 import com.withwon.domain.supplement.SupplementRequestRepository;
+import com.withwon.domain.amendment.AmendmentRequestRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
@@ -23,6 +24,7 @@ class CustomerIncidentServiceTest {
     private ApplicationRepository applicationRepository;
     private ApplicationConsentRepository applicationConsentRepository;
     private SupplementRequestRepository supplementRequestRepository;
+    private AmendmentRequestRepository amendmentRequestRepository;
     private CustomerIncidentService customerIncidentService;
 
     @BeforeEach
@@ -31,9 +33,10 @@ class CustomerIncidentServiceTest {
         applicationRepository = mock(ApplicationRepository.class);
         applicationConsentRepository = mock(ApplicationConsentRepository.class);
         supplementRequestRepository = mock(SupplementRequestRepository.class);
+        amendmentRequestRepository = mock(AmendmentRequestRepository.class);
         customerIncidentService = new CustomerIncidentService(
                 incidentRepository, applicationRepository, applicationConsentRepository,
-                supplementRequestRepository);
+                supplementRequestRepository, amendmentRequestRepository);
     }
 
     @Test
@@ -96,6 +99,19 @@ class CustomerIncidentServiceTest {
 
         assertEquals(requests, customerIncidentService.findCustomerSupplementRequests(7L, 12L));
         verify(supplementRequestRepository).findAllByIncident_IdOrderByCreatedAtDesc(12L);
+    }
+
+    @Test
+    void findsAmendmentRequestsOnlyForCustomerOwnedIncident() {
+        Incident incident = mock(Incident.class);
+        List<com.withwon.domain.amendment.AmendmentRequest> requests = List.of(
+                mock(com.withwon.domain.amendment.AmendmentRequest.class));
+        when(incidentRepository.findByIdAndCustomer_Id(12L, 7L)).thenReturn(Optional.of(incident));
+        when(amendmentRequestRepository.findAllByIncident_IdOrderByCreatedAtDesc(12L))
+                .thenReturn(requests);
+
+        assertEquals(requests, customerIncidentService.findCustomerAmendmentRequests(7L, 12L));
+        verify(amendmentRequestRepository).findAllByIncident_IdOrderByCreatedAtDesc(12L);
     }
 
     @Test

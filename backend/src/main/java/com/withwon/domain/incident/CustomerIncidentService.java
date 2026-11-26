@@ -6,6 +6,8 @@ import com.withwon.domain.application.ApplicationConsent;
 import com.withwon.domain.application.ApplicationConsentRepository;
 import com.withwon.domain.supplement.SupplementRequest;
 import com.withwon.domain.supplement.SupplementRequestRepository;
+import com.withwon.domain.amendment.AmendmentRequest;
+import com.withwon.domain.amendment.AmendmentRequestRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,15 +24,18 @@ public class CustomerIncidentService {
     private final ApplicationRepository applicationRepository;
     private final ApplicationConsentRepository applicationConsentRepository;
     private final SupplementRequestRepository supplementRequestRepository;
+    private final AmendmentRequestRepository amendmentRequestRepository;
 
     public CustomerIncidentService(IncidentRepository incidentRepository,
                                    ApplicationRepository applicationRepository,
                                    ApplicationConsentRepository applicationConsentRepository,
-                                   SupplementRequestRepository supplementRequestRepository) {
+                                   SupplementRequestRepository supplementRequestRepository,
+                                   AmendmentRequestRepository amendmentRequestRepository) {
         this.incidentRepository = incidentRepository;
         this.applicationRepository = applicationRepository;
         this.applicationConsentRepository = applicationConsentRepository;
         this.supplementRequestRepository = supplementRequestRepository;
+        this.amendmentRequestRepository = amendmentRequestRepository;
     }
 
     public List<Incident> findCustomerIncidents(Long customerId) {
@@ -77,6 +82,17 @@ public class CustomerIncidentService {
             return List.of();
         }
         return supplementRequestRepository.findAllByIncident_IdOrderByCreatedAtDesc(incidentId);
+    }
+
+    public List<AmendmentRequest> findCustomerAmendmentRequests(Long customerId, Long incidentId) {
+        requireCustomerId(customerId);
+        if (incidentId == null) {
+            throw new IllegalArgumentException("incidentId must not be null.");
+        }
+        if (incidentRepository.findByIdAndCustomer_Id(incidentId, customerId).isEmpty()) {
+            return List.of();
+        }
+        return amendmentRequestRepository.findAllByIncident_IdOrderByCreatedAtDesc(incidentId);
     }
 
     public Page<Incident> findCustomerIncidents(Long customerId, String status, Pageable pageable) {

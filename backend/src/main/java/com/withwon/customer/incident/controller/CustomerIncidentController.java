@@ -83,13 +83,18 @@ public class CustomerIncidentController {
                 .stream()
                 .map(CustomerIncidentSupplementResponse::from)
                 .toList();
+        var amendmentRequests = customerIncidentService
+                .findCustomerAmendmentRequests(principal.userId(), incidentId)
+                .stream()
+                .map(CustomerIncidentAmendmentResponse::from)
+                .toList();
         var evidenceFiles = evidenceQueryService
                 .findIncidentEvidenceFiles(principal.userId(), incidentId)
                 .stream()
                 .map(CustomerIncidentEvidenceResponse::from)
                 .toList();
         return ResponseEntity.ok(CustomerIncidentDetailResponse.from(
-                incident, applications, consents, supplementRequests, evidenceFiles));
+                incident, applications, consents, supplementRequests, amendmentRequests, evidenceFiles));
     }
 
     @org.springframework.web.bind.annotation.DeleteMapping("/{incidentId}")

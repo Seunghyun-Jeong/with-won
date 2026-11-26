@@ -19,6 +19,7 @@ public record CustomerIncidentDetailResponse(
         List<CreatedApplicationResponse> applications,
         List<CustomerIncidentConsentResponse> consents,
         List<CustomerIncidentSupplementResponse> supplementRequests,
+        List<CustomerIncidentAmendmentResponse> amendmentRequests,
         List<CustomerIncidentEvidenceResponse> evidenceFiles
 ) {
 
@@ -26,6 +27,7 @@ public record CustomerIncidentDetailResponse(
                                                       List<CreatedApplicationResponse> applications,
                                                       List<CustomerIncidentConsentResponse> consents,
                                                       List<CustomerIncidentSupplementResponse> supplementRequests,
+                                                      List<CustomerIncidentAmendmentResponse> amendmentRequests,
                                                       List<CustomerIncidentEvidenceResponse> evidenceFiles) {
         return new CustomerIncidentDetailResponse(
                 incident.getId(),
@@ -40,6 +42,7 @@ public record CustomerIncidentDetailResponse(
                 applications,
                 consents,
                 supplementRequests,
+                amendmentRequests,
                 evidenceFiles);
     }
 }
