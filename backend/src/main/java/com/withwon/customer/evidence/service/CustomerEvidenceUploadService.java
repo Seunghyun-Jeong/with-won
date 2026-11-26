@@ -23,10 +23,32 @@ public class CustomerEvidenceUploadService {
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "application/pdf",
             "image/jpeg",
+            "image/gif",
             "image/png",
+            "image/webp",
+            "image/bmp",
+            "image/tiff",
             "audio/mpeg",
             "audio/mp4",
-            "text/plain");
+            "audio/wav",
+            "audio/x-wav",
+            "audio/ogg",
+            "audio/webm",
+            "text/plain",
+            "text/csv",
+            "application/rtf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/x-hwp",
+            "application/haansofthwp",
+            "application/octet-stream");
+
+    private static final Set<String> BLOCKED_EXTENSIONS = Set.of(
+            "exe", "dll", "com", "bat", "cmd", "ps1", "sh", "msi", "scr", "jar", "class", "js", "vbs");
 
     private final IncidentRepository incidentRepository;
     private final EvidenceFileRepository evidenceFileRepository;
@@ -89,10 +111,23 @@ public class CustomerEvidenceUploadService {
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new IllegalArgumentException("file must not exceed 20 MB.");
         }
+        String originalName = file.getOriginalFilename();
+        String extension = extensionOf(originalName);
+        if (BLOCKED_EXTENSIONS.contains(extension)) {
+            throw new IllegalArgumentException("Executable files are not supported.");
+        }
         if (file.getContentType() == null
                 || !ALLOWED_CONTENT_TYPES.contains(file.getContentType().toLowerCase(Locale.ROOT))) {
-            throw new IllegalArgumentException("Only PDF, image, audio, and text files are supported.");
+            throw new IllegalArgumentException("This file type is not supported.");
         }
+    }
+
+    private String extensionOf(String originalName) {
+        if (originalName == null || originalName.isBlank()) {
+            return "";
+        }
+        int dot = originalName.lastIndexOf('.');
+        return dot < 0 ? "" : originalName.substring(dot + 1).toLowerCase(Locale.ROOT);
     }
 
     public record UploadedEvidence(EvidenceFile evidenceFile, EvidenceVersion evidenceVersion) {

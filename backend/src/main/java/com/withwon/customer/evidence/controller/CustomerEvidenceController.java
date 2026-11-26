@@ -101,17 +101,24 @@ public class CustomerEvidenceController {
     public ResponseEntity<Resource> content(
             Authentication authentication,
             @PathVariable Long incidentId,
-            @PathVariable Long evidenceFileId) {
+            @PathVariable Long evidenceFileId,
+            @RequestParam(name = "preview", defaultValue = "false") boolean preview) {
         AuthSessionService.SessionPrincipal principal =
                 (AuthSessionService.SessionPrincipal) authentication.getPrincipal();
         var downloaded = accessService.load(principal.userId(), incidentId, evidenceFileId);
         MediaType mediaType = MediaType.parseMediaType(downloaded.version().getMimeType());
+        boolean inline = preview && (mediaType.getType().equals("image")
+                || mediaType.getType().equals("audio")
+                || mediaType.equals(MediaType.APPLICATION_PDF)
+                || mediaType.equals(MediaType.TEXT_PLAIN));
+        ContentDisposition disposition = inline
+                ? ContentDisposition.inline().filename(downloaded.version().getOriginalName(), StandardCharsets.UTF_8).build()
+                : ContentDisposition.attachment().filename(downloaded.version().getOriginalName(), StandardCharsets.UTF_8).build();
         return ResponseEntity.ok()
                 .contentType(mediaType)
                 .contentLength(downloaded.version().getSizeBytes())
-                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
-                        .filename(downloaded.version().getOriginalName(), StandardCharsets.UTF_8)
-                        .build().toString())
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .header("X-Content-Type-Options", "nosniff")
                 .body(downloaded.resource());
     }
 

@@ -36,6 +36,9 @@ out/
 ### VS Code ###
 .vscode/
 
+### Local environment secrets ###
+.env
+
 ### Local progress notes ###
 BE1_STATUS.md
 storage/
