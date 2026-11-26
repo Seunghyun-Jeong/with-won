@@ -7,4 +7,6 @@ import java.util.List;
 public interface ApplicationConsentRepository extends JpaRepository<ApplicationConsent, Long> {
 
     List<ApplicationConsent> findAllByIncident_IdOrderByAgreedAtDesc(Long incidentId);
+
+    boolean existsByIncident_IdAndConsentType(Long incidentId, String consentType);
 }

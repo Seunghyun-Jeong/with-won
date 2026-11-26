@@ -48,6 +48,15 @@ public class ApplicationConsent {
     protected ApplicationConsent() {
     }
 
+    public ApplicationConsent(Incident incident, String consentType, String policyVersion,
+                              LocalDateTime agreedAt, String policyText) {
+        this.incident = incident;
+        this.consentType = consentType;
+        this.policyVersion = policyVersion;
+        this.agreedAt = agreedAt;
+        this.policyText = policyText;
+    }
+
     public Long getId() {
         return id;
     }

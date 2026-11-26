@@ -12,6 +12,7 @@ import com.withwon.domain.evidence.EvidenceQueryService;
 import com.withwon.domain.incident.CustomerIncidentService;
 import com.withwon.domain.incident.Incident;
 import com.withwon.domain.supplement.SupplementResponse;
+import com.withwon.domain.transaction.TransactionSearchProjection;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
@@ -33,19 +34,21 @@ class CustomerIncidentControllerTest {
     private CustomerIncidentService incidentService;
     private EvidenceQueryService evidenceQueryService;
     private CustomerIncidentController controller;
+    private CustomerTransactionService transactionService;
     private Authentication authentication;
 
     @BeforeEach
     void setUp() {
         incidentService = mock(CustomerIncidentService.class);
         evidenceQueryService = mock(EvidenceQueryService.class);
+        transactionService = mock(CustomerTransactionService.class);
         controller = new CustomerIncidentController(
                 incidentService,
                 evidenceQueryService,
                 mock(CustomerIncidentDraftService.class),
                 mock(CustomerIncidentDraftUpdateService.class),
                 mock(CustomerSupplementResponseService.class),
-                mock(CustomerTransactionService.class));
+                transactionService);
         authentication = mock(Authentication.class);
         when(authentication.getPrincipal())
                 .thenReturn(new AuthSessionService.SessionPrincipal(7L, "CUSTOMER"));
@@ -69,6 +72,22 @@ class CustomerIncidentControllerTest {
     void rejectsIncidentListPageSizeOverMaximum() {
         assertThrows(IllegalArgumentException.class,
                 () -> controller.list(authentication, null, 0, 101));
+    }
+
+    @Test
+    void returnsAvailableTransactionsForAuthenticatedCustomer() {
+        when(transactionService.findAvailableTransactions(
+                7L, 10L, null, null, 22L, 1, 20))
+                .thenReturn(new PageImpl<TransactionSearchProjection>(
+                        List.of(), PageRequest.of(1, 20), 0));
+
+        var result = controller.availableTransactions(
+                authentication, 10L, null, null, 22L, 1, 20);
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertEquals(1, result.getBody().page());
+        verify(transactionService).findAvailableTransactions(
+                7L, 10L, null, null, 22L, 1, 20);
     }
 
     @Test

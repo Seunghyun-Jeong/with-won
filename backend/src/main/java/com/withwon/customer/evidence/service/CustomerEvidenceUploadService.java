@@ -6,8 +6,10 @@ import com.withwon.domain.evidence.EvidenceFile;
 import com.withwon.domain.evidence.EvidenceFileRepository;
 import com.withwon.domain.evidence.EvidenceVersion;
 import com.withwon.domain.evidence.EvidenceVersionRepository;
+import com.withwon.domain.application.ApplicationConsentRepository;
 import com.withwon.domain.incident.IncidentRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -54,15 +56,26 @@ public class CustomerEvidenceUploadService {
     private final EvidenceFileRepository evidenceFileRepository;
     private final EvidenceVersionRepository evidenceVersionRepository;
     private final EvidenceStorage evidenceStorage;
+    private final ApplicationConsentRepository consentRepository;
 
     public CustomerEvidenceUploadService(IncidentRepository incidentRepository,
                                          EvidenceFileRepository evidenceFileRepository,
                                          EvidenceVersionRepository evidenceVersionRepository,
                                          EvidenceStorage evidenceStorage) {
+        this(incidentRepository, evidenceFileRepository, evidenceVersionRepository, evidenceStorage, null);
+    }
+
+    @Autowired
+    public CustomerEvidenceUploadService(IncidentRepository incidentRepository,
+                                         EvidenceFileRepository evidenceFileRepository,
+                                         EvidenceVersionRepository evidenceVersionRepository,
+                                         EvidenceStorage evidenceStorage,
+                                         ApplicationConsentRepository consentRepository) {
         this.incidentRepository = incidentRepository;
         this.evidenceFileRepository = evidenceFileRepository;
         this.evidenceVersionRepository = evidenceVersionRepository;
         this.evidenceStorage = evidenceStorage;
+        this.consentRepository = consentRepository;
     }
 
     @Transactional
@@ -73,6 +86,11 @@ public class CustomerEvidenceUploadService {
                 .orElseThrow(IncidentNotFoundException::new);
         if (!incident.isDraft()) {
             throw new DraftUpdateNotAllowedException();
+        }
+        if (consentRepository != null
+                && (!consentRepository.existsByIncident_IdAndConsentType(incidentId, "PRIVACY")
+                || !consentRepository.existsByIncident_IdAndConsentType(incidentId, "EXTERNAL_AI"))) {
+            throw new IllegalStateException("Both PRIVACY and EXTERNAL_AI consents are required.");
         }
         validate(documentType, file);
 
