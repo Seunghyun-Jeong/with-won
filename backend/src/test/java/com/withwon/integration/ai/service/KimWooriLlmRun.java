@@ -5,12 +5,13 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.withwon.integration.ai.TestFiles;
 import com.withwon.integration.ai.client.ClaudeLlmClient;
+import com.withwon.integration.ai.dto.DocCheck;
+import com.withwon.integration.ai.dto.DocCheckResult;
 import com.withwon.integration.ai.dto.Evidence;
 import com.withwon.integration.ai.dto.EvidenceStatus;
 import com.withwon.integration.ai.dto.FindingText;
 import com.withwon.integration.ai.dto.LlmCall;
 import com.withwon.integration.ai.dto.SummaryResult;
-import com.withwon.integration.ai.dto.TagItem;
 import com.withwon.integration.ai.dto.TagResult;
 import com.withwon.integration.ai.dto.TimelineEvent;
 import com.withwon.integration.ai.dto.TimelineResult;
@@ -23,9 +24,9 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-// 진짜 Claude로 김우리 사건 타임라인, 요약, 자율배상 태깅을 만든다(돈이 드는 호출, ./gradlew llmTest로만. 하나만: --tests '*KimWooriLlmRun.김우리_사건_요약*').
-// 세 작업 모두 같은 입력이다. 필수 서류(피해구제신청서, 확인원, 자율배상 신청서)와 선택 캡처를 넣는다. 신분증은 LLM에 보내지 않고, 같은 서류의 사진, 스캔본은 겹치므로 하나씩만 넣는다. 통화 녹취는 지금 넣지 않는다(KimWooriCase).
-// 결과는 build/llm-timeline-kim-woori/, build/llm-summary-kim-woori/, build/llm-tagging-kim-woori/에 남기고, 토큰 수는 ClaudeLlmClient 로그로 본다.
+// 진짜 Claude로 김우리 사건 타임라인, 요약, 자율배상 태깅, 서류 점검 요약을 만든다(돈이 드는 호출, ./gradlew llmTest로만. 하나만: --tests '*KimWooriLlmRun.김우리_사건_요약*').
+// 네 작업 모두 같은 입력이다. 필수 서류(피해구제신청서, 확인원, 자율배상 신청서)와 선택 캡처를 넣는다. 신분증은 LLM에 보내지 않고, 같은 서류의 사진, 스캔본은 겹치므로 하나씩만 넣는다. 통화 녹취는 지금 넣지 않는다(KimWooriCase).
+// 결과는 build/llm-timeline-kim-woori/, build/llm-summary-kim-woori/, build/llm-tagging-kim-woori/, build/llm-doc-check-kim-woori/에 남기고, 토큰 수는 ClaudeLlmClient 로그로 본다.
 @Tag("llm")
 class KimWooriLlmRun {
 
@@ -64,6 +65,14 @@ class KimWooriLlmRun {
         evidence.forEach(ev -> sb.append("\n    #").append(ev.fragmentId()).append(ev.verified() ? " O " : " X ").append(ev.quote()));
     }
 
+    /** 요약, 태깅, 서류 점검이 같이 쓰는 finding 한 건 출력. prefix는 상태 뒤에 붙는 항목 코드 같은 것 */
+    private static void appendFinding(StringBuilder sb, String prefix, FindingText f) {
+        sb.append("\n[").append(f.status()).append("] ").append(prefix).append(f.displayText())
+                .append(f.unknownLabels().isEmpty() ? "" : " 모르는 이름표 " + f.unknownLabels())
+                .append(f.unverifiedAmounts().isEmpty() ? "" : " 근거에 없는 금액 " + f.unverifiedAmounts());
+        appendEvidence(sb, f.evidence());
+    }
+
     @Test
     void 김우리_사건_타임라인을_진짜_Claude로_만든다() throws Exception {
         KimWooriCase kim = kimWoori();
@@ -99,12 +108,7 @@ class KimWooriLlmRun {
                 Map<EvidenceStatus, Long> counts = items.stream()
                         .collect(Collectors.groupingBy(FindingText::status, Collectors.counting()));
                 sb.append("\n== ").append(kind).append(' ').append(items.size()).append("개, 근거 상태 ").append(counts).append('\n');
-                for (FindingText i : items) {
-                    sb.append("\n[").append(i.status()).append("] ").append(i.displayText())
-                            .append(i.unknownLabels().isEmpty() ? "" : " 모르는 이름표 " + i.unknownLabels())
-                            .append(i.unverifiedAmounts().isEmpty() ? "" : " 근거에 없는 금액 " + i.unverifiedAmounts());
-                    appendEvidence(sb, i.evidence());
-                }
+                items.forEach(i -> appendFinding(sb, "", i));
             }
         }
         save("llm-summary-kim-woori", sb);
@@ -123,15 +127,28 @@ class KimWooriLlmRun {
                     .collect(Collectors.groupingBy(t -> t.finding().status(), Collectors.counting()));
             sb.append("\n== 태그 ").append(result.tags().size()).append("개, 근거 상태 ").append(counts)
                     .append("\n== 찾지 못한 항목 ").append(result.notFound()).append('\n');
-            for (TagItem t : result.tags()) {
-                FindingText f = t.finding();
-                sb.append("\n[").append(f.status()).append("] ").append(t.itemCode()).append(' ').append(f.displayText())
-                        .append(f.unknownLabels().isEmpty() ? "" : " 모르는 이름표 " + f.unknownLabels())
-                        .append(f.unverifiedAmounts().isEmpty() ? "" : " 근거에 없는 금액 " + f.unverifiedAmounts());
-                appendEvidence(sb, f.evidence());
-            }
+            result.tags().forEach(t -> appendFinding(sb, t.itemCode() + " ", t.finding()));
         }
         save("llm-tagging-kim-woori", sb);
+        assertThat(result.failReason()).isNull();
+    }
+
+    @Test
+    void 김우리_서류_점검_요약을_진짜_Claude로_만든다() throws Exception {
+        KimWooriCase kim = kimWoori();
+
+        DocCheckResult result = new DocCheckService(new ClaudeLlmClient(key())).check(kim.fragments, kim.labels);
+
+        StringBuilder sb = calls(result.failReason(), result.calls());
+        if (result.documents() != null) {
+            for (DocCheck d : result.documents()) {
+                sb.append("\n== ").append(d.document()).append(d.needsSupplement() ? " 보완 필요" : " 갖춤")
+                        .append(" 이유 ").append(d.issues().size()).append("개\n");
+                d.issues().forEach(i -> appendFinding(sb, "", i));
+                sb.append('\n');
+            }
+        }
+        save("llm-doc-check-kim-woori", sb);
         assertThat(result.failReason()).isNull();
     }
 }
