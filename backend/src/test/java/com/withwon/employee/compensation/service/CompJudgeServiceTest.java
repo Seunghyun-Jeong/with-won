@@ -14,6 +14,10 @@ import com.withwon.employee.compensation.service.CompJudgeService.AccessRecord;
 import com.withwon.employee.compensation.service.CompJudgeService.CaseTx;
 import com.withwon.employee.compensation.service.CompJudgeService.Line;
 import com.withwon.employee.compensation.service.CompJudgeService.Result;
+import com.withwon.employee.compensation.service.CompJudgeService.Status;
+import com.withwon.employee.compensation.service.CompJudgeService.WarningRecord;
+import com.withwon.domain.transaction.CounterpartyType;
+import com.withwon.domain.transaction.TransactionChannel;
 import com.withwon.integration.ai.TestFiles;
 import com.withwon.integration.ai.dto.CheckItem;
 import com.withwon.integration.ai.dto.Evidence;
@@ -24,6 +28,7 @@ import com.withwon.integration.ai.dto.TagItem;
 import com.withwon.integration.ai.service.KimWooriCase;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -38,10 +43,25 @@ class CompJudgeServiceTest {
             new MaskLabel("[받은계좌1]", MaskLabel.Kind.ACCOUNT, "482901-01-336417"),
             new MaskLabel("[받은계좌2]", MaskLabel.Kind.ACCOUNT, "110-472-836150"));
 
+    private static final LocalDateTime T0 = LocalDateTime.of(2026, 11, 1, 10, 0);
+
     private final CompJudgeService service = new CompJudgeService();
 
     private static CaseTx tx(long id, String account, String amount, AccessRecord access) {
-        return new CaseTx(id, account, new BigDecimal(amount), access);
+        return new CaseTx(id, account, new BigDecimal(amount), T0, TransactionChannel.MOBILE, CounterpartyType.BANK, access,
+                WarningRecord.NONE);
+    }
+
+    private static CaseTx dataTx(TransactionChannel channel, CounterpartyType type, WarningRecord warning) {
+        return new CaseTx(1L, "482901-01-336417", new BigDecimal("3000000"), T0, channel, type, NONE, warning);
+    }
+
+    private Status dataStatus(String code, CaseTx tx) {
+        return service.judge(List.of(item(code)), List.of(), Map.of(), List.of(tx), LABELS, List.of()).lines().getFirst().status();
+    }
+
+    private Status priorStatus(List<LocalDateTime> others, List<CaseTx> txs) {
+        return service.judge(List.of(item("EX_PRIOR_RELIEF")), List.of(), Map.of(), txs, LABELS, others).lines().getFirst().status();
     }
 
     private static CheckItem item(String code) {
@@ -63,7 +83,7 @@ class CompJudgeServiceTest {
     }
 
     private Result judge(List<String> codes, List<TagItem> tags, Map<String, String> answers) {
-        return service.judge(codes.stream().map(CompJudgeServiceTest::item).toList(), tags, answers, List.of(), LABELS);
+        return service.judge(codes.stream().map(CompJudgeServiceTest::item).toList(), tags, answers, List.of(), LABELS, List.of());
     }
 
     private Line judgeOne(String code, List<TagItem> tags, Map<String, String> answers) {
@@ -74,7 +94,7 @@ class CompJudgeServiceTest {
     void 김우리_링크_앱_개인정보_보안매체_태그는_신청서_답과_같아_해당이고_답과_다름이_아니다() throws IOException {
         KimWooriCase kim = new KimWooriCase();
         List<TagItem> tags = kim.tagRecorded().tags();
-        Result result = service.judge(nonData(), tags, kimAnswers(), kimTxs(), kim.labels);
+        Result result = service.judge(nonData(), tags, kimAnswers(), kimTxs(), kim.labels, List.of());
 
         for (String code : List.of("FT_SMISHING_LINK", "FT_MALICIOUS_APP", "FT_GAVE_PERSONAL", "FT_GAVE_SECURITY")) {
             Line line = only(result, code);
@@ -91,7 +111,7 @@ class CompJudgeServiceTest {
     void 김우리_직접_이체는_300만원_거래만_해당이고_950만원_원격_거래는_확인_필요다() throws IOException {
         KimWooriCase kim = new KimWooriCase();
         List<TagItem> tags = kim.tagRecorded().tags();
-        Result result = service.judge(nonData(), tags, kimAnswers(), kimTxs(), kim.labels);
+        Result result = service.judge(nonData(), tags, kimAnswers(), kimTxs(), kim.labels, List.of());
 
         List<Line> lines = result.lines().stream().filter(l -> l.itemCode().equals("EX_SELF_ORDER")).toList();
         assertThat(lines).extracting(Line::txId).containsExactly(1L, 2L);
@@ -163,7 +183,7 @@ class CompJudgeServiceTest {
         TagItem tag = tag("EX_SELF_ORDER", EvidenceStatus.VERIFIED, "[피해자]가 [받은계좌1]로 300만원을 직접 이체했다", "[받은계좌1]", "300만원");
         Result result = service.judge(List.of(item("EX_SELF_ORDER")), tagged ? List.of(tag) : List.of(),
                 answer == null ? Map.of() : Map.of("EX_SELF_ORDER", answer),
-                List.of(tx(1, "482901-01-336417", "3000000", access)), LABELS);
+                List.of(tx(1, "482901-01-336417", "3000000", access)), LABELS, List.of());
         return result.lines().getFirst();
     }
 
@@ -208,9 +228,74 @@ class CompJudgeServiceTest {
     }
 
     @Test
-    void 데이터_항목이_들어오면_예외다() {
-        assertThatThrownBy(() -> judge(List.of("EX_CARD"), List.of(), Map.of()))
-                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("EX_CARD");
+    void 채널_BRANCH와_ATM_거래는_EX_FACE_해당이고_MOBILE_APP_ATM은_비해당이다() {
+        assertThat(dataStatus("EX_FACE", dataTx(TransactionChannel.BRANCH, CounterpartyType.BANK, WarningRecord.NONE))).isEqualTo(APPLIES);
+        assertThat(dataStatus("EX_FACE", dataTx(TransactionChannel.ATM, CounterpartyType.BANK, WarningRecord.NONE))).isEqualTo(APPLIES);
+        assertThat(dataStatus("EX_FACE", dataTx(TransactionChannel.MOBILE, CounterpartyType.BANK, WarningRecord.NONE))).isEqualTo(NOT_APPLIES);
+        assertThat(dataStatus("EX_FACE", dataTx(TransactionChannel.APP_ATM, CounterpartyType.BANK, WarningRecord.NONE))).isEqualTo(NOT_APPLIES);
+    }
+
+    @Test
+    void 채널을_모르면_EX_FACE_EX_CARD_확인_필요다() {
+        CaseTx unknown = dataTx(null, CounterpartyType.BANK, WarningRecord.NONE);
+
+        assertThat(dataStatus("EX_FACE", unknown)).isEqualTo(NEEDS_CHECK);
+        assertThat(dataStatus("EX_CARD", unknown)).isEqualTo(NEEDS_CHECK);
+    }
+
+    @Test
+    void 채널_CARD는_EX_CARD_해당이고_다른_채널은_비해당이다() {
+        assertThat(dataStatus("EX_CARD", dataTx(TransactionChannel.CARD, null, WarningRecord.NONE))).isEqualTo(APPLIES);
+        assertThat(dataStatus("EX_CARD", dataTx(TransactionChannel.MOBILE, CounterpartyType.BANK, WarningRecord.NONE))).isEqualTo(NOT_APPLIES);
+    }
+
+    @Test
+    void 받는_곳이_EFIN이면_EX_EFIN_해당이고_BANK는_비해당이고_모르면_확인_필요다() {
+        assertThat(dataStatus("EX_EFIN", dataTx(TransactionChannel.MOBILE, CounterpartyType.EFIN, WarningRecord.NONE))).isEqualTo(APPLIES);
+        assertThat(dataStatus("EX_EFIN", dataTx(TransactionChannel.MOBILE, CounterpartyType.BANK, WarningRecord.NONE))).isEqualTo(NOT_APPLIES);
+        assertThat(dataStatus("EX_EFIN", dataTx(TransactionChannel.MOBILE, null, WarningRecord.NONE))).isEqualTo(NEEDS_CHECK);
+    }
+
+    @Test
+    void 경고에_정상_거래라고_답했으면_EX_WARNED_해당이고_경고_없음은_비해당이고_모르면_확인_필요다() {
+        assertThat(dataStatus("EX_WARNED", dataTx(TransactionChannel.MOBILE, CounterpartyType.BANK, WarningRecord.CLAIMED_NORMAL))).isEqualTo(APPLIES);
+        assertThat(dataStatus("EX_WARNED", dataTx(TransactionChannel.MOBILE, CounterpartyType.BANK, WarningRecord.NONE))).isEqualTo(NOT_APPLIES);
+        assertThat(dataStatus("EX_WARNED", dataTx(TransactionChannel.MOBILE, CounterpartyType.BANK, WarningRecord.UNKNOWN))).isEqualTo(NEEDS_CHECK);
+        assertThat(dataStatus("EX_WARNED", dataTx(TransactionChannel.MOBILE, CounterpartyType.BANK, null))).isEqualTo(NEEDS_CHECK);
+    }
+
+    @Test
+    void 다른_사건_접수일이_첫_피해_거래보다_앞서면_EX_PRIOR_RELIEF_해당이고_뒤면_비해당이고_목록이_null이면_확인_필요다() {
+        List<CaseTx> txs = List.of(tx(1, "a", "1", NONE), tx(2, "b", "1", NONE));
+
+        assertThat(priorStatus(List.of(T0.minusDays(30)), txs)).isEqualTo(APPLIES);
+        assertThat(priorStatus(List.of(T0.plusDays(1)), txs)).isEqualTo(NOT_APPLIES);
+        assertThat(priorStatus(List.of(T0), txs)).isEqualTo(NOT_APPLIES);
+        assertThat(priorStatus(List.of(), txs)).isEqualTo(NOT_APPLIES);
+        assertThat(priorStatus(null, txs)).isEqualTo(NEEDS_CHECK);
+        assertThat(priorStatus(List.of(T0.minusDays(30)), List.of())).isEqualTo(NEEDS_CHECK);
+    }
+
+    @Test
+    void 데이터_항목은_신청서_답이_있어도_답과_다름이_없고_판정도_바뀌지_않는다() {
+        CaseTx card = dataTx(TransactionChannel.CARD, null, WarningRecord.NONE);
+        for (String answer : List.of("YES", "NO")) {
+            Line line = service.judge(List.of(item("EX_CARD")), List.of(), Map.of("EX_CARD", answer), List.of(card), LABELS, List.of())
+                    .lines().getFirst();
+
+            assertThat(line.status()).isEqualTo(APPLIES);
+            assertThat(line.answerMismatch()).isFalse();
+            assertThat(line.tags()).isEmpty();
+        }
+    }
+
+    @Test
+    void 규칙이_없는_데이터_항목은_범위와_상관없이_예외다() {
+        for (CheckItem.Scope scope : CheckItem.Scope.values()) {
+            CheckItem unknown = new CheckItem("EX_NEW", item("EX_CARD").kind(), "새 항목", scope, CheckItem.JudgeBy.DATA, java.util.Set.of());
+            assertThatThrownBy(() -> service.judge(List.of(unknown), List.of(), Map.of(), List.of(tx(1, "a", "1", NONE)), LABELS, List.of()))
+                    .as(scope.name()).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("EX_NEW");
+        }
     }
 
     @Test
@@ -219,7 +304,7 @@ class CompJudgeServiceTest {
         TagItem wrongAmount = tag("EX_SELF_ORDER", EvidenceStatus.VERIFIED, "[받은계좌1]로 700만원을 직접 이체했다", "[받은계좌1]", "700만원");
         List<CaseTx> txs = List.of(tx(1, "482901-01-336417", "3000000", NONE), tx(2, "110-472-836150", "9500000", REMOTE_OR_NEW_DEVICE));
 
-        Result result = service.judge(List.of(item("EX_SELF_ORDER")), List.of(noLabel, wrongAmount), Map.of(), txs, LABELS);
+        Result result = service.judge(List.of(item("EX_SELF_ORDER")), List.of(noLabel, wrongAmount), Map.of(), txs, LABELS, List.of());
 
         assertThat(result.unlinkedTags()).containsExactly(noLabel, wrongAmount);
         assertThat(result.lines()).hasSize(2).allMatch(l -> l.tags().isEmpty());
