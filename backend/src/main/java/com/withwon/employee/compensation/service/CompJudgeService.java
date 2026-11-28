@@ -2,6 +2,8 @@ package com.withwon.employee.compensation.service;
 
 import static java.util.stream.Collectors.toSet;
 
+import com.withwon.domain.transaction.CounterpartyType;
+import com.withwon.domain.transaction.TransactionChannel;
 import com.withwon.global.util.AccountNumbers;
 import com.withwon.integration.ai.dto.CheckItem;
 import com.withwon.integration.ai.dto.CheckItem.JudgeBy;
@@ -12,6 +14,7 @@ import com.withwon.integration.ai.dto.MaskLabel;
 import com.withwon.integration.ai.dto.TagItem;
 import com.withwon.integration.ai.service.AmountNormalizer;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,7 +35,8 @@ import org.springframework.stereotype.Service;
  *       기록이 있는데(REMOTE_OR_NEW_DEVICE) 근거가 없으면 비해당, 나머지는 확인 필요.
  *       기록 UNKNOWN은 "기록 없음"으로 치지 않는다. 기록이 없는 것과 아직 모르는 것을 같게 두면 950만원 같은 원격 이체도 근거만 있으면 해당이 된다.</li>
  *   <li>MANUAL: 신청서 답 말고는 늘 확인 필요. 담당자가 판단한다.</li>
- *   <li>DATA: 이번에 만들지 않는다. channel, counterparty_type 같은 데이터 값의 주인이 없어서다. 들어오면 조용히 넘기지 않고 예외로 드러낸다.</li>
+ *   <li>DATA(EX_FACE, EX_CARD, EX_EFIN, EX_WARNED, EX_PRIOR_RELIEF): 거래 사실만으로 정하고 태그와 신청서 답은 쓰지 않는다. 모르는 값(null, UNKNOWN)은
+ *       기본값으로 넘기지 않고 확인 필요다. 다른 사건 접수일 목록이 null이면 아직 안 본 것이고 빈 목록이면 다른 사건이 없는 것이다. 규칙이 없는 코드는 예외다.</li>
  * </ul>
  *
  * <p>신청서 답: 해당이 되는 답(hitAnswers)은 검증된 서류 근거와 같게 본다. 해당이 아닌 답, 모름, 답 없음은 판정을 바꾸지 않는다.
@@ -52,7 +56,12 @@ public class CompJudgeService {
     /** 거래에 새 기기나 원격 접속 기록이 있는지. 모르면 UNKNOWN이고 없음(NONE)과 다르다. */
     public enum AccessRecord { REMOTE_OR_NEW_DEVICE, NONE, UNKNOWN }
 
-    public record CaseTx(Long id, String counterpartyAccount, BigDecimal amount, AccessRecord access) {
+    /** 그 거래의 경고 안내에 고객이 정상 거래라고 답했는지. 모르면 UNKNOWN이고 경고 없음(NONE)과 다르다. bank_security_events(직원-20)를 판정 입력으로 요약한 값이라 DB 값 목록이 아니다. */
+    public enum WarningRecord { CLAIMED_NORMAL, NONE, UNKNOWN }
+
+    /** channel, counterpartyType, warning이 null이면 모른다는 뜻이다. */
+    public record CaseTx(Long id, String counterpartyAccount, BigDecimal amount, LocalDateTime occurredAt,
+                         TransactionChannel channel, CounterpartyType counterpartyType, AccessRecord access, WarningRecord warning) {
     }
 
     /** 결과 한 줄(check_result 한 행). txId는 사건 단위 항목이면 null. tags는 이 줄에 쓴 검증된 태그, answer와 access는 쓴 신청서 답과 기록 값(없으면 null). */
@@ -66,14 +75,20 @@ public class CompJudgeService {
     private enum AnswerSide { HIT, MISS, NONE }
 
     public Result judge(List<CheckItem> items, List<TagItem> tags, Map<String, String> answers, List<CaseTx> txs,
-                        List<MaskLabel> labels) {
-        items.stream().filter(i -> i.judgeBy() == JudgeBy.DATA).findFirst().ifPresent(i -> {
-            throw new IllegalArgumentException("데이터 판정 항목은 아직 판정하지 않는다: " + i.code());
-        });
+                        List<MaskLabel> labels, List<LocalDateTime> otherIncidentSubmittedAt) {
         List<TagItem> verified = tags.stream().filter(t -> t.finding().status() == EvidenceStatus.VERIFIED).toList();
         List<Line> lines = new ArrayList<>();
         List<TagItem> unlinked = new ArrayList<>();
         for (CheckItem item : items) {
+            if (item.judgeBy() == JudgeBy.DATA) {
+                // 거래 사실만으로 정해서 태그와 신청서 답은 쓰지 않는다(답과 다름도 없다).
+                if (item.scope() == Scope.INCIDENT) {
+                    lines.add(dataLine(item, null, incidentDataStatus(item.code(), txs, otherIncidentSubmittedAt)));
+                } else {
+                    txs.forEach(tx -> lines.add(dataLine(item, tx, dataStatus(item.code(), tx))));
+                }
+                continue;
+            }
             // 담당자 항목은 태그를 받지 않아 근거는 신청서 답뿐이다.
             List<TagItem> own = item.judgeBy() == JudgeBy.MANUAL ? List.of()
                     : verified.stream().filter(t -> t.itemCode().equals(item.code())).toList();
@@ -98,6 +113,43 @@ public class CompJudgeService {
         return new Result(lines, unlinked);
     }
 
+    private static Line dataLine(CheckItem item, CaseTx tx, Status status) {
+        return new Line(item.code(), tx == null ? null : tx.id(), status, false, List.of(), null, null);
+    }
+
+    private static Status dataStatus(String code, CaseTx tx) {
+        return switch (code) {
+            case "EX_FACE" -> tx.channel() == null ? Status.NEEDS_CHECK
+                    : yes(tx.channel() == TransactionChannel.BRANCH || tx.channel() == TransactionChannel.ATM);
+            case "EX_CARD" -> tx.channel() == null ? Status.NEEDS_CHECK : yes(tx.channel() == TransactionChannel.CARD);
+            // 카드 결제는 받는 곳이 비어 여기서 확인 필요가 나오지만 EX_CARD가 해당이라 그대로 둔다.
+            case "EX_EFIN" -> tx.counterpartyType() == null ? Status.NEEDS_CHECK : yes(tx.counterpartyType() == CounterpartyType.EFIN);
+            case "EX_WARNED" -> tx.warning() == null || tx.warning() == WarningRecord.UNKNOWN ? Status.NEEDS_CHECK
+                    : yes(tx.warning() == WarningRecord.CLAIMED_NORMAL);
+            default -> throw new IllegalArgumentException("판정 규칙이 없는 데이터 항목: " + code);
+        };
+    }
+
+    private static Status incidentDataStatus(String code, List<CaseTx> txs, List<LocalDateTime> others) {
+        if (!code.equals("EX_PRIOR_RELIEF")) {
+            throw new IllegalArgumentException("판정 규칙이 없는 데이터 항목: " + code);
+        }
+        return priorRelief(txs, others);
+    }
+
+    /** 다른 사건 접수일이 이번 첫 피해 거래보다 엄격히 앞서면 해당. 목록이나 거래가 없으면 아직 못 본 것이라 확인 필요. */
+    private static Status priorRelief(List<CaseTx> txs, List<LocalDateTime> others) {
+        if (others == null || txs.isEmpty()) {
+            return Status.NEEDS_CHECK;
+        }
+        LocalDateTime first = txs.stream().map(CaseTx::occurredAt).min(LocalDateTime::compareTo).orElseThrow();
+        return yes(others.stream().anyMatch(t -> t.isBefore(first)));
+    }
+
+    private static Status yes(boolean applies) {
+        return applies ? Status.APPLIES : Status.NOT_APPLIES;
+    }
+
     private static Line line(CheckItem item, CaseTx tx, List<TagItem> evidence, String answer, AccessRecord access) {
         AnswerSide side = side(item, answer);
         Status base = status(item.judgeBy(), !evidence.isEmpty(), access);
@@ -116,7 +168,7 @@ public class CompJudgeService {
                 case UNKNOWN -> Status.NEEDS_CHECK;
             };
             case MANUAL -> docEvidence ? Status.APPLIES : Status.NEEDS_CHECK;
-            case DATA -> throw new IllegalArgumentException("데이터 판정 항목은 아직 판정하지 않는다");
+            case DATA -> throw new IllegalStateException("데이터 항목은 dataStatus로 판정한다");
         };
     }
 
