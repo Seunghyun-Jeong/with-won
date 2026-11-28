@@ -19,10 +19,10 @@ import java.util.regex.Pattern;
  * 천과 백이 섞인 꼴("5천3백만원"은 3,005,000으로 잘못 읽음). 문장 쪽 금액을 못 읽으면 그 금액은 대조를 건너뛰고,
  * 근거 쪽 금액을 못 읽으면 같은 값의 문장 금액이 확인 필요로 내려간다. 김우리 서류와 신청서에는 이런 꼴이 없어 받아들였다.
  */
-final class AmountNormalizer {
+public final class AmountNormalizer {
 
     /** text는 글에 적힌 그대로(부호 뺌), won은 원 단위 값 */
-    record Amount(String text, long won) {
+    public record Amount(String text, long won) {
     }
 
     private static final String UNIT = "(?:억|천만|백만|만|천)";
@@ -35,7 +35,7 @@ final class AmountNormalizer {
     private AmountNormalizer() {
     }
 
-    static List<Amount> find(String text) {
+    public static List<Amount> find(String text) {
         List<Amount> found = new ArrayList<>();
         for (MatchResult m : AMOUNT.matcher(text).results().toList()) {
             try {

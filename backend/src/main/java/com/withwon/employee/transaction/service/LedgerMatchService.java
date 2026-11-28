@@ -4,6 +4,7 @@ import com.withwon.customer.incident.controller.IncidentNotFoundException;
 import com.withwon.domain.incident.IncidentRepository;
 import com.withwon.domain.transaction.OutgoingTransactionProjection;
 import com.withwon.domain.transaction.TransactionRepository;
+import com.withwon.global.util.AccountNumbers;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -92,7 +93,7 @@ public class LedgerMatchService {
         boolean time = claim.at().truncatedTo(ChronoUnit.MINUTES)
                 .equals(row.getOccurredAt().truncatedTo(ChronoUnit.MINUTES));
         boolean bank = sameKnown(bank(claim.bank()), bank(row.getCounterpartyBank()));
-        boolean account = sameKnown(digits(claim.account()), digits(row.getCounterpartyAccount()));
+        boolean account = sameKnown(AccountNumbers.digits(claim.account()), AccountNumbers.digits(row.getCounterpartyAccount()));
         Grade grade = amount && time && bank && account ? Grade.MATCH : Grade.PARTIAL;
         return new Candidate(row, grade, amount, time, bank, account);
     }
@@ -108,9 +109,5 @@ public class LedgerMatchService {
 
     private static String bank(String name) {
         return name == null ? null : name.replaceAll("\\s", "").replace("은행", "").replaceFirst("^[A-Z]+", "");
-    }
-
-    private static String digits(String account) {
-        return account == null ? null : account.replaceAll("\\D", "");
     }
 }
