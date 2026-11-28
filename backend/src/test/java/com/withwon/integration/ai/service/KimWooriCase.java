@@ -8,6 +8,8 @@ import com.withwon.integration.ai.dto.EvidenceFragment;
 import com.withwon.integration.ai.dto.MaskInput;
 import com.withwon.integration.ai.dto.MaskLabel;
 import com.withwon.integration.ai.dto.MaskResult;
+import com.withwon.integration.ai.dto.TagResult;
+import com.withwon.integration.ai.TestFiles;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,12 +25,14 @@ import tools.jackson.databind.json.JsonMapper;
  * 통화 녹취(build/speech-kim-woori)는 11-26부터 넣지 않는다. 진짜 통화 녹음을 구하기 어려워 합성음으로만 확인한 상태라,
  * 개발 시간이 남으면 다시 넣는다(CLAUDE.md 남은 일).
  */
-final class KimWooriCase {
+public final class KimWooriCase {
 
     static final Path OCR = Path.of("build/ocr-kim-woori");
 
     final List<EvidenceFragment> fragments = new ArrayList<>();
-    List<MaskLabel> labels = List.of();
+    public List<MaskLabel> labels = List.of();
+    /** tagRecorded가 쓴 가짜 LLM. 보낸 글을 시험이 본다. */
+    FakeLlm llm;
 
     /** 서류 하나를 조각으로 나눠 가리고, 대응표를 이어 받는다(보완 서류처럼 서류마다 maskForLlm). */
     KimWooriCase add(String document, String fileName) throws IOException {
@@ -51,6 +55,37 @@ final class KimWooriCase {
         Stream<String> sentences = Stream.of("narrative", "extra_note")
                 .flatMap(k -> Stream.of(form.get(k).asString().split("(?<=[.?!])\\s+")));
         return addTexts("자율배상신청서", Stream.concat(noticed, sentences).toList());
+    }
+
+    /**
+     * 태깅 시험이 같이 쓰는 녹화 답: 필수 서류 4개와 신청서 글 칸을 넣고, 11-26 진짜 Claude 호출이 찾은 태그 5개(링크, 앱 설치, 주민번호 뒷자리,
+     * OTP, 300만원 직접 이체. 950만원은 직접 이체로 안 붙임)를 가짜 LLM으로 돌려주어 TaggingService를 돌린다.
+     */
+    public TagResult tagRecorded() throws IOException {
+        add("피해구제신청서", "01_피해구제신청서_전자.pdf.txt")
+                .add("사건사고사실확인원", "02_사건사고사실확인원.pdf.txt")
+                .add("문자캡처", "05_문자캡처.png.txt")
+                .add("이체내역캡처", "06_이체내역캡처.png.txt")
+                .addCompForm();
+        long link = idContaining("자율배상신청서", "문자의 링크를 눌러 보안점검 앱을 내려받았습니다");
+        long app = idContaining("사건사고사실확인원", "원격제어 기능이 있는 악성 앱을 설치하게");
+        long rrn = idContaining("자율배상신청서", "주민등록번호 뒷자리를 물어 불러 주었습니다");
+        long transfer = idContaining("자율배상신청서", "300만원을 직접 이체했고, OTP 번호도 불러 주었습니다");
+        long account = idContaining("자율배상신청서", "안전계좌라며 KB국민은행 [받은계좌1]");
+        llm = new FakeLlm("""
+                {"tags": [
+                  {"itemCode": "EX_SELF_ORDER", "text": "[피해자]가 [받은계좌1]로 300만원을 직접 이체했다",
+                   "evidence": [{"fragmentId": %1$d, "quote": "KB국민은행 [받은계좌1]"}, {"fragmentId": %2$d, "quote": "300만원을 직접 이체했고"}]},
+                  {"itemCode": "FT_GAVE_SECURITY", "text": "[피해자]가 통화 중 OTP 번호를 불러 주었다",
+                   "evidence": [{"fragmentId": %2$d, "quote": "OTP 번호도 불러 주었습니다"}]},
+                  {"itemCode": "FT_GAVE_PERSONAL", "text": "[피해자]가 본인 확인이라는 말에 주민등록번호 뒷자리를 불러 주었다",
+                   "evidence": [{"fragmentId": %3$d, "quote": "주민등록번호 뒷자리를 물어 불러 주었습니다"}]},
+                  {"itemCode": "FT_MALICIOUS_APP", "text": "[피해자]가 원격제어 기능이 있는 악성 앱을 설치했다",
+                   "evidence": [{"fragmentId": %4$d, "quote": "원격제어 기능이 있는 악성 앱을 설치하게"}]},
+                  {"itemCode": "FT_SMISHING_LINK", "text": "[피해자]가 문자의 링크를 눌러 보안점검 앱을 내려받았다",
+                   "evidence": [{"fragmentId": %5$d, "quote": "문자의 링크를 눌러 보안점검 앱을 내려받았습니다"}]}]}"""
+                .formatted(account, transfer, rrn, app, link));
+        return new TaggingService(llm).tag(TestFiles.TAG_ITEMS, fragments, labels);
     }
 
     /** 서류에서 가린 글이 maskedText와 같은 nth번째 조각의 ID. 가짜 LLM 답에 실제 조각 ID를 넣을 때 쓴다. */
